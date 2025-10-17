@@ -55,8 +55,8 @@ void kos_perspective(float screen_width, float screen_height, float fovy,
   shz_xmtrx_apply_4x4(&scrn_mtrx);
 
   float cot_fovy_2 = shz_invf_fsrra(shz_tanf(-(fovy * F_PI / 180.0f) * 0.5f));
-  shz_mat4x4_set_scale(&p_mtrx, cot_fovy_2, cot_fovy_2, (far_z + near_z) / (near_z - far_z));
-  p_mtrx.elem2D[3][2] = (2.0f * far_z * near_z) / (near_z - far_z);
+  shz_mat4x4_set_scale(&p_mtrx, cot_fovy_2, cot_fovy_2, shz_divf(far_z + near_z, near_z - far_z));
+  p_mtrx.elem2D[3][2] = shz_divf(2.0f * far_z * near_z, near_z - far_z);
 
   shz_xmtrx_apply_4x4(&p_mtrx);
 }
@@ -86,16 +86,16 @@ static alignas(32) shz_mat4x4_t translation_mtrx = SHZ_IDENTITY_MAT4X4_TMPLATE;
 void kos_lookAt(const shz_vec3_t eye, const shz_vec3_t center,
                const shz_vec3_t up) {
   shz_vec3_t forward = shz_vec3_normalize(shz_vec3_sub(center, eye));
-  lookAt_mtrx.left.vec3 = shz_vec3_normalize(shz_vec3_cross(forward, up));
-  lookAt_mtrx.up.vec3 = shz_vec3_cross(lookAt_mtrx.left.vec3, forward);
-  lookAt_mtrx.forward.vec3 = (shz_vec3_t){
+  lookAt_mtrx.left.xyz = shz_vec3_normalize(shz_vec3_cross(forward, up));
+  lookAt_mtrx.up.xyz = shz_vec3_cross(lookAt_mtrx.left.xyz, forward);
+  lookAt_mtrx.forward.xyz = (shz_vec3_t){
     .x = -forward.x,
     .y = -forward.y,
     .z = -forward.z
   };
   shz_xmtrx_apply_4x4(&lookAt_mtrx);
 
-  translation_mtrx.pos.vec3 = (shz_vec3_t){ .e = { -eye.x, -eye.y, -eye.z} };
+  translation_mtrx.pos.xyz = (shz_vec3_t){ .e = { -eye.x, -eye.y, -eye.z} };
   shz_xmtrx_apply_4x4(&translation_mtrx);
 }
 

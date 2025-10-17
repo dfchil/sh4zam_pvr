@@ -66,15 +66,21 @@ static const alignas(32) uint8_t palette32_raw[] = {
 #embed "../build/pvrtex/pal4/sh4zam32_w.dt.pal"
 };
 
+
+static const alignas(32) uint8_t teapot_stl[] = {
+#embed "../assets/models/Utah_teapot_(solid).stl"
+};
+
+
 static alignas(32) dttex_info_t texture256x256;
 static alignas(32) dttex_info_t texture128x128;
 static alignas(32) dttex_info_t texture32x32;
 
-static inline void set_cube_transform() {
+static inline void set_cube_transform(float scale) {
   alignas(32) shz_mat4x4_t wmat = {0};
   shz_xmtrx_init_translation(cube_state.pos.x, cube_state.pos.y,
                              cube_state.pos.z);
-  shz_xmtrx_apply_scale(MODEL_SCALE * XSCALE, MODEL_SCALE, MODEL_SCALE);
+  shz_xmtrx_apply_scale(scale * MODEL_SCALE * XSCALE, scale * MODEL_SCALE, scale * MODEL_SCALE);
   shz_xmtrx_apply_rotation_x(cube_state.rot.x);
   shz_xmtrx_apply_rotation_y(cube_state.rot.y);
   shz_xmtrx_store_4x4(&wmat);
@@ -117,7 +123,7 @@ static inline void draw_textured_sprite(shz_vec4_t *tverts, uint32_t side,
 }
 
 void render_txr_tr_cube(void) {
-  set_cube_transform();
+  set_cube_transform(1.0f);
   alignas(32) shz_vec4_t tverts[8] = {0};
 
   for (int i = 0; i < 8; i++) {
@@ -149,7 +155,7 @@ void render_txr_tr_cube(void) {
 }
 
 void render_cubes_cube() {
-  set_cube_transform();
+  set_cube_transform(1.0f);
   pvr_sprite_cxt_t cxt;
 
   pvr_list_type_t list_type =
@@ -355,7 +361,7 @@ void render_wire_grid(shz_vec4_t *min, shz_vec4_t *max, shz_vec4_t *dir1,
 }
 
 void render_wire_cube(void) {
-  set_cube_transform();
+  set_cube_transform(1.0f);
   alignas(32) shz_vec4_t tverts[8] = {0};
   for (int i = 0; i < 8; i++) {
     tverts[i] = shz_xmtrx_transform_vec4(cube_vertices[i]);
@@ -393,8 +399,7 @@ void render_wire_cube(void) {
     for (uint32_t i = 1; i < cube_state.grid_size + 1; i++) {
       shz_vec4_t inner_from = *(cube_vertices + 0);
       shz_vec4_t inner_to = *(cube_vertices + 3);
-      float z_offset =
-          i * ((inner_from.x - inner_to.x) / (cube_state.grid_size + 1));
+      float z_offset = shz_divf_fsrra(i * ((inner_from.x - inner_to.x)), (cube_state.grid_size + 1));
       inner_from.z += z_offset;
       inner_to.z += z_offset;
       render_wire_grid(&inner_from, &inner_to, &wiredir1, &wiredir2,
@@ -411,8 +416,7 @@ void render_wire_cube(void) {
     for (uint32_t i = 1; i < cube_state.grid_size + 1; i++) {
       shz_vec4_t inner_from = *(cube_vertices + 0);
       shz_vec4_t inner_to = *(cube_vertices + 4);
-      float y_offset =
-          i * ((inner_to.x - inner_from.x) / (cube_state.grid_size + 1));
+      float y_offset = shz_divf_fsrra(i * ((inner_to.x - inner_from.x)), cube_state.grid_size + 1);
       inner_from.y += y_offset;
       inner_to.y += y_offset;
       render_wire_grid(&inner_from, &inner_to, &wiredir1, &wiredir2,
@@ -431,6 +435,102 @@ void render_wire_cube(void) {
                    cube_state.grid_size, cube_side_colors[2], &dr_state);
   pvr_dr_finish();
 }
+
+typedef struct __attribute__((packed)) {
+  shz_vec3_t  normal;
+  shz_vec3_t  v1;
+  shz_vec3_t  v2;
+  shz_vec3_t  v3;
+  uint16_t    attrbytecount;
+} stl_poly_t;
+
+void render_teapot(void) {
+  set_cube_transform(.30f);
+  shz_xmtrx_apply_scale(0.1f * XSCALE, 0.1f, 0.1f);
+
+  uint32_t num_polys = *((uint32_t*)(teapot_stl + 80));
+  printf("Teapot polygons: %u, %u\n", num_polys, sizeof(stl_poly_t));
+  stl_poly_t *polys = (stl_poly_t *)(teapot_stl + 84);
+
+  pvr_dr_state_t dr_state;
+  pvr_dr_init(&dr_state);
+
+  pvr_poly_cxt_t cxt;
+  pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
+  cxt.gen.culling = PVR_CULLING_NONE;
+
+  pvr_poly_hdr_t *hdrpntr = (pvr_poly_hdr_t *)pvr_dr_target(dr_state);
+  pvr_poly_compile(hdrpntr, &cxt);
+  pvr_dr_commit(hdrpntr);
+
+  for (int p = 0; p < num_polys; p++) {
+
+    // if (polys[p].attrbytecount != 0) {
+    //   printf("Poly %d has attrbytecount %d, skipping\n", p,
+    //   polys[p].attrbytecount);
+    //   continue;
+    // }
+    // // if (p % 500 == 0){
+    //   printf("Poly %d: v1=%.3f,%.3f,%.3f v2=%.3f,%.3f,%.3f v3=%.3f,%.3f,%.3f, %u\n", p,
+    //         //  polys[p].normal.x, polys[p].normal.y, polys[p].normal.z,
+    //          polys[p].v1.x, polys[p].v1.y, polys[p].v1.z,
+    //          polys[p].v2.x, polys[p].v2.y, polys[p].v2.z,
+    //          polys[p].v3.x, polys[p].v3.y, polys[p].v3.z,
+    //          polys[p].attrbytecount
+    //         );
+
+    // // }
+    shz_vec4_t v1 = shz_xmtrx_transform_vec4(
+      (shz_vec4_t){
+        .x = polys[p].v1.x, .y = polys[p].v1.y, .z = polys[p].v1.z, .w = 1.0f}
+      );
+    shz_vec4_t v2 = shz_xmtrx_transform_vec4((shz_vec4_t){
+        .x = polys[p].v2.x, .y = polys[p].v2.y, .z = polys[p].v2.z, .w = 1.0f});
+    shz_vec4_t v3 = shz_xmtrx_transform_vec4((shz_vec4_t){
+        .x = polys[p].v3.x, .y = polys[p].v3.y, .z = polys[p].v3.z, .w = 1.0f});
+    v1.z = shz_invf(v1.w);
+    v1.x *= v1.z;
+    v1.y *= v1.z;
+    v2.z = shz_invf(v2.w);
+    v2.x *= v2.z;
+    v2.y *= v2.z;
+    v3.z = shz_invf(v3.w);
+    v3.x *= v3.z;
+    v3.y *= v3.z;
+
+    // backface culling
+    shz_vec3_t cross = shz_vec3_cross(
+        (shz_vec3_t){.x = v2.x - v1.x, .y = v2.y - v1.y, .z = v2.z - v1.z},
+        (shz_vec3_t){.x = v3.x - v1.x, .y = v3.y - v1.y, .z = v3.z - v1.z});
+    if (cross.z > 0.0f) {
+      continue;
+    }
+    
+    pvr_vertex_t *tri = (pvr_vertex_t *)pvr_dr_target(dr_state);
+    tri->flags = PVR_CMD_VERTEX;
+    tri->x = v1.x;
+    tri->y = v1.y;
+    tri->z = v1.z;
+    tri->argb = 0xFFFFFFFF;
+    pvr_dr_commit(tri);
+    tri = (pvr_vertex_t *)pvr_dr_target(dr_state);
+    tri->flags = PVR_CMD_VERTEX;
+    tri->x = v2.x;
+    tri->y = v2.y;
+    tri->z = v2.z;
+    tri->argb = 0xFFFFFFFF;
+    pvr_dr_commit(tri);
+    tri = (pvr_vertex_t *)pvr_dr_target(dr_state);
+    tri->flags = PVR_CMD_VERTEX_EOL;
+    tri->x = v3.x;
+    tri->y = v3.y;
+    tri->z = v3.z;
+    tri->argb = 0xFFFFFFFF;
+    pvr_dr_commit(tri);
+  }
+  pvr_dr_finish();
+}
+
 
 static inline void cube_reset_state() {
   uint32_t grid_size = cube_state.grid_size;
@@ -530,11 +630,11 @@ int main(int argc, char *argv[]) {
   pvr_init_params_t params = {
       {PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_16, PVR_BINSIZE_0,
        PVR_BINSIZE_8},
-      3 << 20,       // Vertex buffer size, 3MB
+      3 << 19,       // Vertex buffer size, 3MB
       0,             // No DMA15
       SUPERSAMPLING, // Set horisontal FSAA
       0,             // Translucent Autosort enabled.
-      2,             // Extra OPBs
+      3,             // Extra OPBs
       0,             // vbuf_doublebuf_disabled
   };
   pvr_init(&params);
@@ -575,7 +675,8 @@ int main(int argc, char *argv[]) {
       break;
     case CUBES_CUBE_MAX:
       pvr_list_begin(PVR_LIST_OP_POLY);
-      render_cubes_cube();
+      // render_cubes_cube();
+      render_teapot();
       pvr_list_finish();
       break;
     case CUBES_CUBE_MIN:
