@@ -15,7 +15,7 @@
 			"miDebuggerServerAddress": "localhost:2159", //common misconception: we connect to the gdb server offered by dc-tool-ip, NOT to the Dreamcast directly !
 			"debugServerPath": "/opt/toolchains/dc/bin/dc-tool-ip",
 			// "debugServerArgs": "-g -t 10.0.0.219 -x ${workspaceFolder}/sh4zamsprites.elf",
-			"debugServerArgs": "-g -t 10.0.0.184 -x ${workspaceFolder}/sh4zamsprites.elf",
+			"debugServerArgs": "-g -t 10.0.0.251 -x ${workspaceFolder}/sh4zamsprites.elf",
 			"stopAtEntry": false,
 			"externalConsole": false,
 			"avoidWindowsConsoleRedirection": false,

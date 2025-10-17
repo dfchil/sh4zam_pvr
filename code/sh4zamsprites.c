@@ -621,8 +621,6 @@ KOS_INIT_FLAGS(INIT_DEFAULT | INIT_MALLOCSTATS);
 
 int main(int argc, char *argv[]) {
 
-  printf("showframetimes: %d\n", SHOWFRAMETIMES);
-
 #ifdef DEBUG
   gdb_init();
 #endif
@@ -630,15 +628,16 @@ int main(int argc, char *argv[]) {
   pvr_init_params_t params = {
       {PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_16, PVR_BINSIZE_0,
        PVR_BINSIZE_8},
-      3 << 19,       // Vertex buffer size, 3MB
+      3 << 19,       // Vertex buffer size, 1.5MB
       0,             // No DMA15
       SUPERSAMPLING, // Set horisontal FSAA
       0,             // Translucent Autosort enabled.
       3,             // Extra OPBs
       0,             // vbuf_doublebuf_disabled
   };
-  pvr_init(&params);
+  vid_set_mode(DM_640x480, PM_RGB888P);
   pvr_set_bg_color(0, 0, 0);
+  pvr_init(&params);
   if (!pvrtex_load_blob(&texture256_raw, &texture256x256))
     return -1;
   if (!pvrtex_load_blob(&texture128_raw, &texture128x128))
