@@ -444,12 +444,41 @@ typedef struct __attribute__((packed)) {
   uint16_t    attrbytecount;
 } stl_poly_t;
 
+static shz_mat4x4_t teapot_view;
 void render_teapot(void) {
-  set_cube_transform(.30f);
-  shz_xmtrx_apply_scale(0.1f * XSCALE, 0.1f, 0.1f);
+
+  float screen_width = 640.0f;
+  float screen_height = 480.0f;
+  float near_z = 0.0f;
+  float fov = 90.0f * SHZ_F_PI / 180.0f;   
+  float aspect =  XSCALE * XSCALE * screen_width / screen_height;
+  
+  shz_xmtrx_init_identity();
+  // shz_xmtrx_apply_permutation_wxyz();
+  shz_xmtrx_apply_screen(screen_width, screen_height);
+  shz_xmtrx_apply_perspective(fov, aspect, near_z);
+  shz_xmtrx_apply_lookat(
+            (float[]){0.f, -0.00001f, 20.0f}, 
+            (float[]){0.f, 0.f, 0.f},
+            (float[]){0.f, 0.f, -1.f});
+
+  shz_xmtrx_store_4x4(&teapot_view);
+  alignas(32) shz_mat4x4_t wmat = {0};
+  shz_xmtrx_init_translation(cube_state.pos.x, cube_state.pos.y,
+                             cube_state.pos.z);
+  // shz_xmtrx_apply_scale(MODEL_SCALE * XSCALE, MODEL_SCALE, MODEL_SCALE);
+  shz_xmtrx_apply_rotation_x(cube_state.rot.x);
+  shz_xmtrx_apply_rotation_y(cube_state.rot.y);
+  shz_xmtrx_store_4x4(&wmat);
+
+  shz_xmtrx_load_4x4(&teapot_view);
+  shz_xmtrx_apply_4x4(&wmat);
+
+
+  // shz_xmtrx_store_4x4(&stored_projection_view);
 
   uint32_t num_polys = *((uint32_t*)(teapot_stl + 80));
-  printf("Teapot polygons: %u, %u\n", num_polys, sizeof(stl_poly_t));
+  // printf("Teapot polygons: %u, %u\n", num_polys, sizeof(stl_poly_t));
   stl_poly_t *polys = (stl_poly_t *)(teapot_stl + 84);
 
   pvr_dr_state_t dr_state;
@@ -463,7 +492,7 @@ void render_teapot(void) {
   pvr_poly_compile(hdrpntr, &cxt);
   pvr_dr_commit(hdrpntr);
 
-  for (int p = 0; p < num_polys; p++) {
+  for (uint32_t p = 0; p < num_polys; p++) {
 
     // if (polys[p].attrbytecount != 0) {
     //   printf("Poly %d has attrbytecount %d, skipping\n", p,
@@ -506,26 +535,31 @@ void render_teapot(void) {
       continue;
     }
     
+    uint32_t normal_color = (uint32_t)(255 * polys[p].normal.x)<<16 |
+                            (uint32_t)(255 * polys[p].normal.y)<<8 |
+                            (uint32_t)(255 * polys[p].normal.z)<<0 |
+                            0xFF000000;
+
     pvr_vertex_t *tri = (pvr_vertex_t *)pvr_dr_target(dr_state);
     tri->flags = PVR_CMD_VERTEX;
     tri->x = v1.x;
     tri->y = v1.y;
     tri->z = v1.z;
-    tri->argb = 0xFFFFFFFF;
+    tri->argb = normal_color;
     pvr_dr_commit(tri);
     tri = (pvr_vertex_t *)pvr_dr_target(dr_state);
     tri->flags = PVR_CMD_VERTEX;
     tri->x = v2.x;
     tri->y = v2.y;
     tri->z = v2.z;
-    tri->argb = 0xFFFFFFFF;
+    tri->argb = normal_color;
     pvr_dr_commit(tri);
     tri = (pvr_vertex_t *)pvr_dr_target(dr_state);
     tri->flags = PVR_CMD_VERTEX_EOL;
     tri->x = v3.x;
     tri->y = v3.y;
     tri->z = v3.z;
-    tri->argb = 0xFFFFFFFF;
+    tri->argb = normal_color;
     pvr_dr_commit(tri);
   }
   pvr_dr_finish();
