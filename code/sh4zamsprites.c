@@ -458,12 +458,11 @@ typedef struct __attribute__((packed)) {
 void render_teapot(void) {
     uint32_t culled_polys = 0;
 
-    float screen_width = 640.0f * XSCALE;
-    float screen_height = 480.0f;
+    float screen_width = vid_mode->width * XSCALE;
+    float screen_height = vid_mode->height;
     float near_z = 0.0f;
     float fov = 90.0f * SHZ_F_PI / 180.0f;
-    float aspect = screen_width / (screen_height * XSCALE);
-
+    float aspect = shz_divf_fsrra(screen_width, (screen_height * XSCALE));
 
     shz_xmtrx_init_identity();
     shz_xmtrx_apply_screen(screen_width, screen_height);
@@ -476,7 +475,7 @@ void render_teapot(void) {
     kos_lookAt((shz_vec3_t){0.0f, -0.00001f, -20.0f},
                (shz_vec3_t){0.0f, 0.0f, 0.0f}, (shz_vec3_t){0.0f, 0.0f, 1.0f});
 
-    shz_xmtrx_translate(cube_state.pos.x, cube_state.pos.y, cube_state.pos.z);
+    // shz_xmtrx_translate(cube_state.pos.x, cube_state.pos.y, cube_state.pos.z);
     // shz_xmtrx_apply_scale(MODEL_SCALE , MODEL_SCALE, MODEL_SCALE);
     shz_xmtrx_apply_rotation_x(cube_state.rot.x);
     shz_xmtrx_apply_rotation_y(cube_state.rot.y);
@@ -496,7 +495,7 @@ void render_teapot(void) {
 
     pvr_poly_cxt_t cxt;
     pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
-    cxt.gen.culling = PVR_CULLING_NONE;
+    cxt.gen.culling = PVR_CULLING_CW;
 
     pvr_poly_hdr_t* hdrpntr = (pvr_poly_hdr_t*)pvr_dr_target(dr_state);
     pvr_poly_compile(hdrpntr, &cxt);
@@ -517,6 +516,32 @@ void render_teapot(void) {
         //          polys[p].v3.x, polys[p].v3.y, polys[p].v3.z,
         //          polys[p].attrbytecount
         //         );
+
+        shz_vec4_t normal = shz_xmtrx_transform_vec4(
+            (shz_vec4_t){.xyz = polys[p].normal, .w = 0.0f});
+        if (normal.z > 0.0f) {
+            culled_polys++;
+            continue;
+        }
+        normal = shz_vec4_normalize(normal);
+
+        shz_vec3_t light_dir = shz_vec3_normalize(
+            (shz_vec3_t){.x = cube_state.pos.x,
+                         .y = cube_state.pos.y,
+                         .z = cube_state.pos.z - 1.0f});
+            
+        float light_intensity = shz_vec3_dot(normal.xyz, light_dir);
+        if (light_intensity < 0.1f) {
+            light_intensity = 0.1f;
+        }
+        if (light_intensity > 1.0f) {
+            light_intensity = 1.0f;
+        }
+
+
+        shz_vec3_t ambient_light = {0.1f, 0.1f, 0.1f};
+        shz_vec3_t diffuse_light =  (shz_vec3_t){light_intensity, light_intensity, light_intensity};
+        shz_vec3_t final_light = shz_vec3_clamp(shz_vec3_add(ambient_light, diffuse_light), 0.0f, 1.0f);
 
         // // }
         shz_vec4_t v1 = shz_xmtrx_transform_vec4(
@@ -545,78 +570,31 @@ void render_teapot(void) {
         v3.x *= v3.w;
         v3.y *= v3.w;
 
-        shz_vec3_t normal = shz_vec3_cross(shz_vec3_sub(v2.xyz, v1.xyz),
-                                           shz_vec3_sub(v3.xyz, v1.xyz));
-        if (normal.z > 0.0f) {
-            culled_polys++;
-            continue;
-        }
-        // if (p % 1000 == 0) {
-        //     printf("Poly %d normal 1: %.5f,%.5f,%.5f\n", p, normal.x, normal.y,
-        //            normal.z);
-        // }
-        normal.z = 0.0f;
-        normal = shz_vec3_normalize(normal);
-        // if (p % 1000 == 0) {
-        //     printf("Poly %d normal 1 normalized: %.5f,%.5f,%.5f\n", p, normal.x,
-        //            normal.y, normal.z);
-        // }
-        // shz_vec3_t light_dir = shz_vec3_normalize(
-        //     (shz_vec3_t){.e = {1.0f, 1.0f, -1.0f}});  // light from top-right
-
-        // float diffuse_intensity = shz_vec3_dot(normal, light_dir);
-        // normal = shz_vec3_scale(normal, diffuse_intensity);
-        // shz_vec3_add(normal, (shz_vec3_t){.e = {1.0f, 1.0f, 1.0f}});
-        // normal = shz_vec3_scale(normal, 0.5f);
-        // uint32_t normal_color = 0xFF000000 |
-        //                         ((uint32_t)(normal.x * 255.0f) << 16) |
-        //                         ((uint32_t)(normal.y * 255.0f) << 8) |
-        //                         ((uint32_t)(normal.z * 255.0f) << 0);
-
-        uint32_t normal_color =
-            0xFF000000 | ((uint32_t)((normal.x + 1.0f) * 0.5f * 255.0f) << 16) |
-            ((uint32_t)((normal.y + 1.0f) * 0.5f * 255.0f) << 8) |
-            ((uint32_t)((normal.z + 1.0f) * 0.5f * 255.0f) << 0);
-
-        // diffuse_intensity = (diffuse_intensity  > 1.0f) ? 1.0f
-        //                     : (diffuse_intensity < 0.1f) ? 0.1f
-        //                                                   : diffuse_intensity;
-
-        // uint32_t tcol = (uint32_t)(0xFF000000 |
-        //                      ((uint32_t)(diffuse_intensity * 255.0f) << 16) |
-        //                      ((uint32_t)(diffuse_intensity * 255.0f) << 8) |
-        //                      ((uint32_t)(diffuse_intensity * 255.0f) << 0));
-        // uint32_t normal_color = tcol;
-        // v3.z *= v3.w;
-
-        // uint32_t normal_color = (uint32_t)(0xFF000000 |
-        //                         ((uint32_t)(fabsf(polys[p].normal.x) *
-        //                         255.0f) << 16) |
-        //                         ((uint32_t)(fabsf(polys[p].normal.y) *
-        //                         255.0f) << 8) |
-        //                         ((uint32_t)(fabsf(polys[p].normal.z) *
-        //                         255.0f) << 0));
+        uint32_t vertex_color = ((uint32_t)(final_light.x * 255.0f) << 16) |
+                                ((uint32_t)(final_light.y * 255.0f) << 8) |
+                                ((uint32_t)(final_light.z * 255.0f)) | 0xFF000000;
+        
 
         pvr_vertex_t* tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
         tri->flags = PVR_CMD_VERTEX;
         tri->x = v1.x;
         tri->y = v1.y;
         tri->z = v1.z;
-        tri->argb = normal_color;
+        tri->argb = vertex_color;
         pvr_dr_commit(tri);
         tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
         tri->flags = PVR_CMD_VERTEX;
         tri->x = v2.x;
         tri->y = v2.y;
         tri->z = v2.z;
-        tri->argb = normal_color;
+        tri->argb = vertex_color;
         pvr_dr_commit(tri);
         tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
         tri->flags = PVR_CMD_VERTEX_EOL;
         tri->x = v3.x;
         tri->y = v3.y;
         tri->z = v3.z;
-        tri->argb = normal_color;
+        tri->argb = vertex_color;
         pvr_dr_commit(tri);
     }
     // printf("Culled polygons: %u / %u\n", culled_polys, num_polys);
@@ -726,6 +704,8 @@ int main(int argc, char* argv[]) {
     vid_set_mode(DM_640x480, PM_RGB888P);
     pvr_set_bg_color(0, 0, 0);
     pvr_init(&params);
+    PVR_SET(PVR_OBJECT_CLIP, 0.00001f);
+
     if (!pvrtex_load_blob(&texture256_raw, &texture256x256)) return -1;
     if (!pvrtex_load_blob(&texture128_raw, &texture128x128)) return -1;
     // if (!pvrtex_load_palette_blob(palette64_raw, PVR_PAL_ARGB1555, 0))
