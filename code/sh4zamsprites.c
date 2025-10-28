@@ -12,7 +12,7 @@
 #include <arch/gdb.h>
 #endif
 
-#define SUPERSAMPLING 1  // Set to 1 to enable horizontal FSAA, 0 to disable
+#define SUPERSAMPLING 0  // Set to 1 to enable horizontal FSAA, 0 to disable
 #if SUPERSAMPLING == 1
 #define XSCALE 2.0f
 #else
@@ -66,7 +66,7 @@ static const alignas(32) uint8_t palette32_raw[] = {
 };
 
 static const alignas(32) uint8_t teapot_stl[] = {
-#embed "../assets/models/Utah_teapot_(solid).stl"
+#embed "../assets/models/teapot.stl"
 };
 
 static alignas(32) dttex_info_t texture256x256;
@@ -470,15 +470,40 @@ void render_teapot(void) {
     // shz_xmtrx_apply_lookat(
     //           (float[]){0.f, -0.00001f, -20.0f},
     //           (float[]){0.f, 0.f, 0.f},
-    //           (float[]){0.f, 0.f, 1.f});
+    //           (float[]){0.f, 1.f, 0.f});    
 
     kos_lookAt((shz_vec3_t){0.0f, -0.00001f, -20.0f},
-               (shz_vec3_t){0.0f, 0.0f, 0.0f}, (shz_vec3_t){0.0f, 0.0f, 1.0f});
+               (shz_vec3_t){0.0f, 0.0f, 0.0f}, (shz_vec3_t){0.0f, -1.0f, 0.0f});
 
-    // shz_xmtrx_translate(cube_state.pos.x, cube_state.pos.y, cube_state.pos.z);
+    shz_xmtrx_translate(cube_state.pos.x, cube_state.pos.y, cube_state.pos.z);
     // shz_xmtrx_apply_scale(MODEL_SCALE , MODEL_SCALE, MODEL_SCALE);
     shz_xmtrx_apply_rotation_x(cube_state.rot.x);
     shz_xmtrx_apply_rotation_y(cube_state.rot.y);
+    
+
+    
+    shz_vec3_t n1 = shz_vec3_cross(shz_xmtrx_get_row(1).xyz, shz_xmtrx_get_row(2));
+    shz_vec3_t n2 = shz_vec3_cross(shz_xmtrx_get_row(2), shz_xmtrx_get_row(0));
+    shz_vec3_t n3 = shz_vec3_cross(shz_xmtrx_get_row(0), shz_xmtrx_get_row(1));
+    shz_mat3x3_t normal_matrix = {
+        .e = {n1.x, n1.y, n1.z,
+              n2.x, n2.y, n2.z,
+              n3.x, n3.y, n3.z}};
+
+
+
+    // alignas(32) shz_mat4x4_t wmat = {0};
+    // shz_xmtrx_store_4x4(&wmat);
+
+    // shz_xmtrx_init_4x4_identity();
+    // shz_xmtrx_apply_screen(screen_width, screen_height);
+    // shz_xmtrx_apply_rotation_x(cube_state.rot.x);
+    // shz_xmtrx_apply_rotation_y(cube_state.rot.y);
+    // shz_xmtrx_apply_rotation_y(cube_state.rot.z);
+    // shz_xmtrx_invert_4x4(&wmat);
+
+
+
     // shz_xmtrx_store_4x4(&wmat);
 
     // shz_xmtrx_load_4x4(&teapot_view);
@@ -501,21 +526,7 @@ void render_teapot(void) {
     pvr_poly_compile(hdrpntr, &cxt);
     pvr_dr_commit(hdrpntr);
 
-    for (uint32_t p = 0; p < num_polys; p++) {
-        // if (polys[p].attrbytecount != 0) {
-        //   printf("Poly %d has attrbytecount %d, skipping\n", p,
-        //   polys[p].attrbytecount);
-        //   continue;
-        // }
-        // // if (p % 500 == 0){
-        //   printf("Poly %d: v1=%.3f,%.3f,%.3f v2=%.3f,%.3f,%.3f
-        //   v3=%.3f,%.3f,%.3f, %u\n", p,
-        //         //  polys[p].normal.x, polys[p].normal.y, polys[p].normal.z,
-        //          polys[p].v1.x, polys[p].v1.y, polys[p].v1.z,
-        //          polys[p].v2.x, polys[p].v2.y, polys[p].v2.z,
-        //          polys[p].v3.x, polys[p].v3.y, polys[p].v3.z,
-        //          polys[p].attrbytecount
-        //         );
+    for (uint32_t p = 0; p < num_polys; p+=2) {
 
         shz_vec4_t normal = shz_xmtrx_transform_vec4(
             (shz_vec4_t){.xyz = polys[p].normal, .w = 0.0f});
@@ -523,12 +534,13 @@ void render_teapot(void) {
             culled_polys++;
             continue;
         }
+
         normal = shz_vec4_normalize(normal);
 
         shz_vec3_t light_dir = shz_vec3_normalize(
             (shz_vec3_t){.x = cube_state.pos.x,
                          .y = cube_state.pos.y,
-                         .z = cube_state.pos.z - 1.0f});
+                         .z = cube_state.pos.z});
             
         float light_intensity = shz_vec3_dot(normal.xyz, light_dir);
         if (light_intensity < 0.1f) {
@@ -538,64 +550,72 @@ void render_teapot(void) {
             light_intensity = 1.0f;
         }
 
-
         shz_vec3_t ambient_light = {0.1f, 0.1f, 0.1f};
-        shz_vec3_t diffuse_light =  (shz_vec3_t){light_intensity, light_intensity, light_intensity};
+        shz_vec3_t diffuse_light = (shz_vec3_t){light_intensity, light_intensity, light_intensity};
         shz_vec3_t final_light = shz_vec3_clamp(shz_vec3_add(ambient_light, diffuse_light), 0.0f, 1.0f);
 
+        final_light = shz_vec3_normalize(polys[p].normal);
+
+        for (uint32_t i = 0; i < 2; i++) {
+            stl_poly_t* poly = &polys[p + i];
+            shz_vec4_t v1 = shz_xmtrx_transform_vec4(
+            (shz_vec4_t){.xyz = poly->v1, .w = 1.0f});
+            v1.w = shz_invf(v1.w);
+
+            shz_vec4_t v2 = shz_xmtrx_transform_vec4(
+                (shz_vec4_t){.xyz = poly->v2, .w = 1.0f});
+            v2.w = shz_invf(v2.w);
+
+            shz_vec4_t v3 = shz_xmtrx_transform_vec4(
+                (shz_vec4_t){.xyz = poly->v3, .w = 1.0f});
+            v3.w = shz_invf(v3.w);
+            v1.z = v1.w;
+            v2.z = v2.w;
+            v3.z = v3.w;
+
+            v1.x *= v1.w;
+            v1.y *= v1.w;
+            // v1.z *= v1.w;
+
+            v2.x *= v2.w;
+            v2.y *= v2.w;
+            // v2.z *= v2.w;
+
+            v3.x *= v3.w;
+            v3.y *= v3.w;
+
+            // uint32_t vertex_color = ((uint32_t)(final_light.x * 255.0f) << 16) |
+            //                         ((uint32_t)(final_light.y * 255.0f) << 8) |
+            //                         ((uint32_t)(final_light.z * 255.0f)) | 0xFF000000;
+
+            uint32_t vertex_color = ((uint32_t)(1.0f + final_light.x * 127.0f) << 16) |
+                                    ((uint32_t)(1.0f + final_light.y * 127.0f) << 8) |
+                                    ((uint32_t)(1.0f + final_light.z * 127.0f)) | 0xFF000000;
+
+            pvr_vertex_t* tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
+            tri->flags = PVR_CMD_VERTEX;
+            tri->x = v1.x;
+            tri->y = v1.y;
+            tri->z = v1.z;
+            tri->argb = vertex_color;
+            pvr_dr_commit(tri);
+            tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
+            tri->flags = PVR_CMD_VERTEX;
+            tri->x = v2.x;
+            tri->y = v2.y;
+            tri->z = v2.z;
+            tri->argb = vertex_color;
+            pvr_dr_commit(tri);
+            tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
+            tri->flags = PVR_CMD_VERTEX_EOL;
+            tri->x = v3.x;
+            tri->y = v3.y;
+            tri->z = v3.z;
+            tri->argb = vertex_color;
+            pvr_dr_commit(tri);
+        }
         // // }
-        shz_vec4_t v1 = shz_xmtrx_transform_vec4(
-            (shz_vec4_t){.xyz = polys[p].v1, .w = 1.0f});
-        v1.w = shz_invf(v1.w);
 
-        shz_vec4_t v2 = shz_xmtrx_transform_vec4(
-            (shz_vec4_t){.xyz = polys[p].v2, .w = 1.0f});
-        v2.w = shz_invf(v2.w);
-
-        shz_vec4_t v3 = shz_xmtrx_transform_vec4(
-            (shz_vec4_t){.xyz = polys[p].v3, .w = 1.0f});
-        v3.w = shz_invf(v3.w);
-        v1.z = v1.w;
-        v2.z = v2.w;
-        v3.z = v3.w;
-
-        v1.x *= v1.w;
-        v1.y *= v1.w;
-        // v1.z *= v1.w;
-
-        v2.x *= v2.w;
-        v2.y *= v2.w;
-        // v2.z *= v2.w;
-
-        v3.x *= v3.w;
-        v3.y *= v3.w;
-
-        uint32_t vertex_color = ((uint32_t)(final_light.x * 255.0f) << 16) |
-                                ((uint32_t)(final_light.y * 255.0f) << 8) |
-                                ((uint32_t)(final_light.z * 255.0f)) | 0xFF000000;
-        
-
-        pvr_vertex_t* tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
-        tri->flags = PVR_CMD_VERTEX;
-        tri->x = v1.x;
-        tri->y = v1.y;
-        tri->z = v1.z;
-        tri->argb = vertex_color;
-        pvr_dr_commit(tri);
-        tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
-        tri->flags = PVR_CMD_VERTEX;
-        tri->x = v2.x;
-        tri->y = v2.y;
-        tri->z = v2.z;
-        tri->argb = vertex_color;
-        pvr_dr_commit(tri);
-        tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
-        tri->flags = PVR_CMD_VERTEX_EOL;
-        tri->x = v3.x;
-        tri->y = v3.y;
-        tri->z = v3.z;
-        tri->argb = vertex_color;
-        pvr_dr_commit(tri);
     }
     // printf("Culled polygons: %u / %u\n", culled_polys, num_polys);
     pvr_dr_finish();
@@ -607,8 +627,10 @@ static inline void cube_reset_state() {
     cube_state.grid_size = grid_size;
     fovy = DEFAULT_FOV;
     cube_state.pos.z = 12.0f;
-    cube_state.rot.x = 0.85f * F_PI;
-    cube_state.rot.y = 1.75f * F_PI;
+    // cube_state.rot.x = 0.85f * F_PI;
+    // cube_state.rot.y = 1.75f * F_PI;
+    cube_state.rot.x = 0.0f;
+    cube_state.rot.y = 0.0f;
     update_projection_view(fovy);
 }
 
