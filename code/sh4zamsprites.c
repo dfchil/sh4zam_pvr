@@ -12,7 +12,7 @@
 #include <arch/gdb.h>
 #endif
 
-#define SUPERSAMPLING 0  // Set to 1 to enable horizontal FSAA, 0 to disable
+#define SUPERSAMPLING 1  // Set to 1 to enable horizontal FSAA, 0 to disable
 #if SUPERSAMPLING == 1
 #define XSCALE 2.0f
 #else
@@ -67,6 +67,7 @@ static const alignas(32) uint8_t palette32_raw[] = {
 
 static const alignas(32) uint8_t teapot_stl[] = {
 #embed "../assets/models/teapot.stl"
+    // #embed "../assets/models/Utah_teapot_(solid).stl"
 };
 
 static alignas(32) dttex_info_t texture256x256;
@@ -154,11 +155,11 @@ void render_txr_tr_cube(void) {
 
 void render_cubes_cube() {
     set_cube_transform(1.0f);
-    pvr_sprite_cxt_t cxt;
-
+    
     pvr_list_type_t list_type =
-        (render_mode == CUBES_CUBE_MAX) ? PVR_LIST_OP_POLY : PVR_LIST_PT_POLY;
-
+    (render_mode == CUBES_CUBE_MAX) ? PVR_LIST_OP_POLY : PVR_LIST_PT_POLY;
+    
+    pvr_sprite_cxt_t cxt;
     pvr_sprite_cxt_col(&cxt, list_type);
     uint32_t cuberoot_cubes = 3;
     if (render_mode == CUBES_CUBE_MAX) {
@@ -455,13 +456,15 @@ typedef struct __attribute__((packed)) {
     uint16_t attrbytecount;
 } stl_poly_t;
 
+static uint32_t light_cycle = 0;
+
 void render_teapot(void) {
     uint32_t culled_polys = 0;
 
     float screen_width = vid_mode->width * XSCALE;
     float screen_height = vid_mode->height;
     float near_z = 0.0f;
-    float fov = 90.0f * SHZ_F_PI / 180.0f;
+    float fov = DEFAULT_FOV * SHZ_F_PI / 180.0f;
     float aspect = shz_divf_fsrra(screen_width, (screen_height * XSCALE));
 
     shz_xmtrx_init_identity();
@@ -470,27 +473,50 @@ void render_teapot(void) {
     // shz_xmtrx_apply_lookat(
     //           (float[]){0.f, -0.00001f, -20.0f},
     //           (float[]){0.f, 0.f, 0.f},
-    //           (float[]){0.f, 1.f, 0.f});    
+    //           (float[]){0.f, 1.f, 0.f});
 
     kos_lookAt((shz_vec3_t){0.0f, -0.00001f, -20.0f},
-               (shz_vec3_t){0.0f, 0.0f, 0.0f}, (shz_vec3_t){0.0f, -1.0f, 0.0f});
+               (shz_vec3_t){0.0f, 0.0f, 0.0f}, (shz_vec3_t){0.0f, 0.0f, -1.0f});
 
     shz_xmtrx_translate(cube_state.pos.x, cube_state.pos.y, cube_state.pos.z);
-    shz_xmtrx_apply_scale(MODEL_SCALE , MODEL_SCALE, MODEL_SCALE);
+    // shz_xmtrx_apply_scale(MODEL_SCALE , MODEL_SCALE, MODEL_SCALE);
     shz_xmtrx_apply_rotation_x(cube_state.rot.x);
     shz_xmtrx_apply_rotation_y(cube_state.rot.y);
-    
+
     shz_mat4x4_t MVP = {0};
     shz_xmtrx_store_4x4(&MVP);
 
-    shz_vec3_t n1 = shz_vec3_cross(shz_xmtrx_get_row(1).xyz, shz_xmtrx_get_row(2).xyz);
-    shz_vec3_t n2 = shz_vec3_cross(shz_xmtrx_get_row(2).xyz, shz_xmtrx_get_row(0).xyz);
-    shz_vec3_t n3 = shz_vec3_cross(shz_xmtrx_get_row(0).xyz, shz_xmtrx_get_row(1).xyz);
-    shz_mat3x3_t normal_matrix = {
-        .e = {n1.x, n1.y, n1.z,
-              n2.x, n2.y, n2.z,
-              n3.x, n3.y, n3.z}};
+    // // shz_vec3_t n1 = shz_vec3_cross(*((shz_vec3_t*)shz_xmtrx_read_row(1).e
+    // + 1),
+    // //                                *((shz_vec3_t*)shz_xmtrx_read_row(2).e
+    // + 1));
+    // // shz_vec3_t n2 = shz_vec3_cross(*((shz_vec3_t*)shz_xmtrx_read_row(2).e
+    // + 1),
+    // //                                *((shz_vec3_t*)shz_xmtrx_read_row(0).e
+    // + 1));
+    // // shz_vec3_t n3 = shz_vec3_cross(*((shz_vec3_t*)shz_xmtrx_read_row(0).e
+    // + 1),
+    // //                                *((shz_vec3_t*)shz_xmtrx_read_row(1).e
+    // + 1)); shz_vec3_t n1 = shz_vec3_cross(shz_xmtrx_read_row(1).xyz,
+    // shz_xmtrx_read_row(2).xyz); shz_vec3_t n2 =
+    // shz_vec3_cross(shz_xmtrx_read_row(2).xyz, shz_xmtrx_read_row(0).xyz);
+    // shz_vec3_t n3 = shz_vec3_cross(shz_xmtrx_read_row(0).xyz,
+    // shz_xmtrx_read_row(1).xyz);
 
+    // shz_mat3x3_t normal_matrix = {
+    //     .elem = {n1.x, n1.y, n1.z, n2.x, n2.y, n2.z, n3.x, n3.y, n3.z}};
+
+    // shz_xmtrx_init_identity();
+    // shz_xmtrx_apply_screen(screen_width, screen_height);
+    // // shz_xmtrx_apply_perspective(fov, aspect, near_z);
+
+    // // kos_lookAt((shz_vec3_t){0.0f, -0.00001f, 20.0f},
+    // //            (shz_vec3_t){0.0f, 0.0f, 0.0f}, (shz_vec3_t){0.0f, 0.0f, 1.0f});
+    // // shz_xmtrx_apply_rotation_x(cube_state.rot.x);
+    // // shz_xmtrx_apply_rotation_y(cube_state.rot.y);
+
+    // shz_mat4x4_t view_matrix = {0};
+    // shz_xmtrx_store_4x4(&view_matrix);
 
     // alignas(32) shz_mat4x4_t wmat = {0};
     // shz_xmtrx_store_4x4(&wmat);
@@ -501,8 +527,6 @@ void render_teapot(void) {
     // shz_xmtrx_apply_rotation_y(cube_state.rot.y);
     // shz_xmtrx_apply_rotation_y(cube_state.rot.z);
     // shz_xmtrx_invert_4x4(&wmat);
-
-
 
     // shz_xmtrx_store_4x4(&wmat);
 
@@ -518,6 +542,60 @@ void render_teapot(void) {
     pvr_dr_state_t dr_state;
     pvr_dr_init(&dr_state);
 
+    light_cycle++;
+    shz_vec3_t light_dir = {
+        .e = {shz_sinf(light_cycle * 0.02f),
+              shz_cosf(light_cycle * 0.02f),
+              -0.90f}};
+
+    light_dir = shz_vec3_normalize(light_dir);
+
+    shz_vec4_t light_quad[4] = {
+        {.e = { -1.0f, -1.0f, 0.0f, 1.0f }},
+        {.e = {  1.0f, -1.0f, 0.0f, 1.0f }},
+        {.e = {  1.0f,  1.0f, 0.0f, 1.0f }},
+        {.e = { -1.0f,  1.0f, 0.0f, 1.0f }},
+    };
+    for (int i = 0; i < 4; i++) {
+        light_quad[i] = shz_vec4_add(
+            light_quad[i],
+            (shz_vec4_t){.e = {light_dir.x * -50.0f,
+                               light_dir.y * -50.0f,
+                               light_dir.z * 50.0f,
+                               1.0f}});
+        light_quad[i] = shz_xmtrx_transform_vec4(light_quad[i]);
+        light_quad[i].z = shz_invf_fsrra(light_quad[i].w);
+        light_quad[i].x *= light_quad[i].z;
+        light_quad[i].y *= light_quad[i].z;
+    }
+
+
+    pvr_sprite_cxt_t spr_cxt;
+    pvr_sprite_cxt_col(&spr_cxt, PVR_LIST_OP_POLY);
+    spr_cxt.gen.culling = PVR_CULLING_NONE;
+    pvr_sprite_hdr_t* light_hdr = (pvr_sprite_hdr_t*)pvr_dr_target(dr_state);
+    pvr_sprite_compile(light_hdr, &spr_cxt);
+    light_hdr->argb = 0xFFFF00FF;
+    pvr_dr_commit(light_hdr);
+
+    pvr_sprite_col_t *light = (pvr_sprite_col_t*)pvr_dr_target(dr_state);
+    light->flags = PVR_CMD_VERTEX_EOL;
+    light->ax = light_quad[0].x;
+    light->ay = light_quad[0].y;
+    light->az = light_quad[0].z;
+    light->bx = light_quad[1].x;
+    light->by = light_quad[1].y;
+    light->bz = light_quad[1].z;
+    light->cx = light_quad[2].x;
+    pvr_dr_commit(light);
+    light = (pvr_sprite_col_t*)pvr_dr_target(dr_state);
+    pvr_sprite_col_t* light2ndhalf = (pvr_sprite_col_t*)((int)light - 32);
+    light2ndhalf->cy = light_quad[3].y;
+    light2ndhalf->cz = light_quad[3].z;
+    light2ndhalf->dx = light_quad[3].x;
+    light2ndhalf->dy = light_quad[3].y;
+    pvr_dr_commit(light);
+    
     pvr_poly_cxt_t cxt;
     pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
     cxt.gen.culling = PVR_CULLING_CW;
@@ -526,21 +604,26 @@ void render_teapot(void) {
     pvr_poly_compile(hdrpntr, &cxt);
     pvr_dr_commit(hdrpntr);
 
-    for (uint32_t p = 0; p < num_polys; p+=2) {
 
-        shz_vec3_t normal = shz_mat3x3_trans_vec3(polys[p].normal);
+    for (uint32_t p = 0; p < num_polys; p += 2) {
+        // shz_vec3_t normal = shz_matrix3x3_trans_vec3(&normal_matrix,
+        // polys[p].normal);
+        // shz_xmtrx_load_4x4(&view_matrix);
+        shz_vec3_t normal = shz_xmtrx_transform_vec4(
+                                (shz_vec4_t){.xyz = polys[p].normal, .w = 0.0f})
+                                .xyz;
+        // shz_vec3_t normal = shz_xmtrx_transform_vec3(polys[p].normal);
+
         if (normal.z > 0.0f) {
             culled_polys++;
             continue;
         }
+        normal = shz_vec3_neg(normal);
         normal = shz_vec3_normalize(normal);
+        // shz_xmtrx_load_4x4(&MVP);
 
-        shz_vec3_t light_dir = shz_vec3_normalize(
-            (shz_vec3_t){.x = cube_state.pos.x,
-                         .y = cube_state.pos.y,
-                         .z = cube_state.pos.z});
-            
-        float light_intensity = shz_vec3_dot(normal.xyz, light_dir);
+
+        float light_intensity = shz_vec3_dot(normal, light_dir);
         if (light_intensity < 0.1f) {
             light_intensity = 0.1f;
         }
@@ -549,15 +632,17 @@ void render_teapot(void) {
         }
 
         shz_vec3_t ambient_light = {0.1f, 0.1f, 0.1f};
-        shz_vec3_t diffuse_light = (shz_vec3_t){light_intensity, light_intensity, light_intensity};
-        shz_vec3_t final_light = shz_vec3_clamp(shz_vec3_add(ambient_light, diffuse_light), 0.0f, 1.0f);
+        shz_vec3_t diffuse_light =
+            (shz_vec3_t){light_intensity, light_intensity, light_intensity};
+        shz_vec3_t final_light = shz_vec3_clamp(
+            shz_vec3_add(ambient_light, diffuse_light), 0.0f, 1.0f);
 
-        final_light = shz_vec3_normalize(polys[p].normal);
+        // final_light = shz_vec3_normalize(normal);
 
         for (uint32_t i = 0; i < 2; i++) {
             stl_poly_t* poly = &polys[p + i];
             shz_vec4_t v1 = shz_xmtrx_transform_vec4(
-            (shz_vec4_t){.xyz = poly->v1, .w = 1.0f});
+                (shz_vec4_t){.xyz = poly->v1, .w = 1.0f});
             v1.w = shz_invf(v1.w);
 
             shz_vec4_t v2 = shz_xmtrx_transform_vec4(
@@ -582,13 +667,17 @@ void render_teapot(void) {
             v3.x *= v3.w;
             v3.y *= v3.w;
 
-            // uint32_t vertex_color = ((uint32_t)(final_light.x * 255.0f) << 16) |
-            //                         ((uint32_t)(final_light.y * 255.0f) << 8) |
-            //                         ((uint32_t)(final_light.z * 255.0f)) | 0xFF000000;
+            // uint32_t vertex_color = ((uint32_t)(final_light.x * 255.0f) <<
+            // 16) |
+            //                         ((uint32_t)(final_light.y * 255.0f) << 8)
+            //                         |
+            //                         ((uint32_t)(final_light.z * 255.0f)) |
+            //                         0xFF000000;
 
-            uint32_t vertex_color = ((uint32_t)(1.0f + final_light.x * 127.0f) << 16) |
-                                    ((uint32_t)(1.0f + final_light.y * 127.0f) << 8) |
-                                    ((uint32_t)(1.0f + final_light.z * 127.0f)) | 0xFF000000;
+            uint32_t vertex_color =
+                ((uint32_t)((1.0f + final_light.x) * 127.0f) << 16) |
+                ((uint32_t)((1.0f + final_light.y) * 127.0f) << 8) |
+                ((uint32_t)((1.0f + final_light.z) * 127.0f)) | 0xFF000000;
 
             pvr_vertex_t* tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
             tri->flags = PVR_CMD_VERTEX;
@@ -613,7 +702,6 @@ void render_teapot(void) {
             pvr_dr_commit(tri);
         }
         // // }
-
     }
     // printf("Culled polygons: %u / %u\n", culled_polys, num_polys);
     pvr_dr_finish();

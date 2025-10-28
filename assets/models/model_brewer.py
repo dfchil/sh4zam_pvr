@@ -147,4 +147,6 @@ model = Model().load_from_obj(pwd + "/teapot2.obj")
 print(model)
 # model.quads = []  # discard quads for STL export
 # model.triangles = []
+if os.path.exists(pwd + "/teapot.stl"):
+    os.remove(pwd + "/teapot.stl")
 model.write_to_stl(pwd + "/teapot.stl")
