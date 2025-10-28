@@ -476,10 +476,21 @@ void render_teapot(void) {
                (shz_vec3_t){0.0f, 0.0f, 0.0f}, (shz_vec3_t){0.0f, -1.0f, 0.0f});
 
     shz_xmtrx_translate(cube_state.pos.x, cube_state.pos.y, cube_state.pos.z);
-    // shz_xmtrx_apply_scale(MODEL_SCALE , MODEL_SCALE, MODEL_SCALE);
+    shz_xmtrx_apply_scale(MODEL_SCALE , MODEL_SCALE, MODEL_SCALE);
     shz_xmtrx_apply_rotation_x(cube_state.rot.x);
     shz_xmtrx_apply_rotation_y(cube_state.rot.y);
     
+    shz_mat4x4_t MVP = {0};
+    shz_xmtrx_store_4x4(&MVP);
+
+    shz_vec3_t n1 = shz_vec3_cross(shz_xmtrx_get_row(1).xyz, shz_xmtrx_get_row(2).xyz);
+    shz_vec3_t n2 = shz_vec3_cross(shz_xmtrx_get_row(2).xyz, shz_xmtrx_get_row(0).xyz);
+    shz_vec3_t n3 = shz_vec3_cross(shz_xmtrx_get_row(0).xyz, shz_xmtrx_get_row(1).xyz);
+    shz_mat3x3_t normal_matrix = {
+        .e = {n1.x, n1.y, n1.z,
+              n2.x, n2.y, n2.z,
+              n3.x, n3.y, n3.z}};
+
 
     // alignas(32) shz_mat4x4_t wmat = {0};
     // shz_xmtrx_store_4x4(&wmat);
@@ -517,14 +528,12 @@ void render_teapot(void) {
 
     for (uint32_t p = 0; p < num_polys; p+=2) {
 
-        shz_vec4_t normal = shz_xmtrx_transform_vec4(
-            (shz_vec4_t){.xyz = polys[p].normal, .w = 0.0f});
+        shz_vec3_t normal = shz_mat3x3_trans_vec3(polys[p].normal);
         if (normal.z > 0.0f) {
             culled_polys++;
             continue;
         }
-
-        normal = shz_vec4_normalize(normal);
+        normal = shz_vec3_normalize(normal);
 
         shz_vec3_t light_dir = shz_vec3_normalize(
             (shz_vec3_t){.x = cube_state.pos.x,
