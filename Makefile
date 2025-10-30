@@ -1,6 +1,6 @@
 TARGETNAME = sh4zamsprites
 BUILDDIR=build
-OBJS := $(shell find . -name '*.c' -not -path "./.git/*" |sed -e 's,\.\(.*\).c,$(BUILDDIR)\1.o,g')
+OBJS := $(shell find . -name '*.c' -not -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.\(.*\).c,$(BUILDDIR)\1.o,g')
 
 KOS_CSTD := -std=gnu23
 CC=kos-cc

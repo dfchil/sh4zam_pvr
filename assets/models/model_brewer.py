@@ -69,8 +69,8 @@ class Model():
         v1 = self.vertices[face.v1.vertex_index]
         v2 = self.vertices[face.v2.vertex_index]
         v3 = self.vertices[face.v3.vertex_index] if isinstance(face, TriangleIndex) else self.vertices[face.v4.vertex_index]
-        v = Coordinate3f(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z)
-        u = Coordinate3f(v3.x - v1.x, v3.y - v1.y, v3.z - v1.z)
+        u = Coordinate3f(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z)
+        v = Coordinate3f(v3.x - v1.x, v3.y - v1.y, v3.z - v1.z)
         nx = u.y * v.z - u.z * v.y
         ny = u.z * v.x - u.x * v.z
         nz = u.x * v.y - u.y * v.x
