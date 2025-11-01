@@ -28,6 +28,8 @@
 #include <sh4zamsprites/perspective.h> /* Perspective projection matrix functions */
 #include <sh4zamsprites/tex_loader.h> /* texture management */
 
+#include <sh4zamsprites/sh4zmdl.h> /* sh4zam model loading and rendering */
+
 #define DEFAULT_FOV 75.0f // Field of view, adjust with dpad up/down
 #define ZOOM_SPEED 0.3f
 #define MODEL_SCALE 3.0f
@@ -68,6 +70,7 @@ static const alignas(32) uint8_t palette32_raw[] = {
 static const alignas(32) uint8_t teapot_stl[] = {
 #embed "../assets/models/teapot.stl"
     // #embed "../assets/models/Utah_teapot_(solid).stl"
+  // #embed "../assets/models/teapot.sh4zmdl"
 };
 
 static alignas(32) dttex_info_t texture256x256;
@@ -438,40 +441,11 @@ void render_wire_cube(void) {
 }
 
 typedef struct __attribute__((packed)) {
-  shz_vec3_t normal;
-  shz_vec3_t v1;
-  shz_vec3_t v2;
-  shz_vec3_t v3;
+  struct sh4zmdl_tri_face_t;
   uint16_t attrbytecount;
 } stl_poly_t;
 
 static uint32_t light_cycle = 13337;
-
-void print_matrxi3x3(const char *label, shz_mat3x3_t *mtx) {
-
-  printf("Matrix3x3 %s:\n", label);
-  for (int r = 0; r < 3; r++) {
-    printf("| ");
-    for (int c = 0; c < 3; c++) {
-      printf("%f ", mtx->elem2D[r][c]);
-    }
-    printf("|\n");
-  }
-}
-
-void print_xmtrx() {
-  alignas(32) shz_mat4x4_t mtx = {0};
-  shz_xmtrx_store_4x4(&mtx);
-  printf("Matrix4x4:\n");
-  for (int r = 0; r < 4; r++) {
-    printf("| ");
-    for (int c = 0; c < 4; c++) {
-      printf("%f ", mtx.elem2D[r][c]);
-    }
-    printf("|\n");
-  }
-}
-
 
 void render_teapot(void) {
   uint32_t culled_polys = 0;
@@ -568,7 +542,7 @@ void render_teapot(void) {
       // .forward = r2,
   };
 
-  // print_matrxi3x3("inverse_transpose", &inverse_transpose);
+  // print_matrix3x3("inverse_transpose", &inverse_transpose);
 
   shz_xmtrx_load_4x4(&MVP);
 

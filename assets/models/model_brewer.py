@@ -134,12 +134,25 @@ class Model():
                     f.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
                 f.write(struct.pack("<H", 0))
 
-
-vertices:list[Coordinate3f] = []
-vertex_normals:list[Coordinate3f] = []
-tex_coords:list[TexCoord2f] = []
-triangles:list[TriangleIndex] = []
-quads:list[QuadIndex] = []
+    def write_to_sh4zmdl(self, filepath:str):
+        with open(filepath, "wb") as f:
+            f.write(struct.pack("<I", len(self.triangles)))
+            f.write(struct.pack("<I", len(self.quads)))
+            f.write(struct.pack("<B", 3))  # type: triangles and quads
+            f.write(b'\0' * 23)  # padding to 32 bytes
+            for tri in self.triangles:
+                normal = self.normal(tri)
+                f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
+                for vi in [tri.v1, tri.v2, tri.v3]:
+                    vertex = self.vertices[vi.vertex_index]
+                    f.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
+            for quad in self.quads:
+                v1, v2, v3, v4 = tuple([v for v in reversed([quad.v1, quad.v2, quad.v3, quad.v4])])
+                normal = self.normal(quad)
+                f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
+                for vi in [v1, v2, v3, v4]:
+                    vertex = self.vertices[vi.vertex_index]
+                    f.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
 
 
 # source https://graphics.cs.utah.edu/courses/cs6620/fall2013/?prj=5
@@ -147,6 +160,5 @@ model = Model().load_from_obj(pwd + "/teapot2.obj")
 print(model)
 # model.quads = []  # discard quads for STL export
 # model.triangles = []
-if os.path.exists(pwd + "/teapot.stl"):
-    os.remove(pwd + "/teapot.stl")
 model.write_to_stl(pwd + "/teapot.stl")
+model.write_to_sh4zmdl(pwd + "/teapot.sh4zmdl")

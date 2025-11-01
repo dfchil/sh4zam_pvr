@@ -73,6 +73,7 @@ CFLAGS+=\
 		-matomic-model=soft-imask \
 		-ffunction-sections -fdata-sections -ftls-model=local-exec \
 		-m4-single-only \
+		-fms-extensions \
 		$(LDLIBS) \
 		${DEFINES} \
 

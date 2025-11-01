@@ -96,6 +96,8 @@
 		"textures.h": "c",
 		"cstdint": "c",
 		"rumble.h": "c",
-		"shz_sh4zam.h": "c"
+		"shz_sh4zam.h": "c",
+		"cube.h": "c",
+		"sh4zmdl.h": "c"
 	}
 }
