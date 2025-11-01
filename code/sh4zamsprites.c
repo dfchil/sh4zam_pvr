@@ -27,6 +27,9 @@
 #include <sh4zamsprites/cube.h> /* Cube vertices and side strips layout */
 #include <sh4zamsprites/perspective.h> /* Perspective projection matrix functions */
 #include <sh4zamsprites/tex_loader.h> /* texture management */
+#include <sh4zamsprites/mat_inverse.h> /* matrix inversion functions */
+
+#include <sh4zamsprites/sh4zmdl.h> /* sh4zam model loading and rendering */
 
 #define DEFAULT_FOV 75.0f // Field of view, adjust with dpad up/down
 #define ZOOM_SPEED 0.3f
@@ -68,6 +71,7 @@ static const alignas(32) uint8_t palette32_raw[] = {
 static const alignas(32) uint8_t teapot_stl[] = {
 #embed "../assets/models/teapot.stl"
     // #embed "../assets/models/Utah_teapot_(solid).stl"
+  // #embed "../assets/models/teapot.sh4zmdl"
 };
 
 static alignas(32) dttex_info_t texture256x256;
@@ -438,40 +442,11 @@ void render_wire_cube(void) {
 }
 
 typedef struct __attribute__((packed)) {
-  shz_vec3_t normal;
-  shz_vec3_t v1;
-  shz_vec3_t v2;
-  shz_vec3_t v3;
+  struct sh4zmdl_tri_face_t;
   uint16_t attrbytecount;
 } stl_poly_t;
 
 static uint32_t light_cycle = 13337;
-
-void print_matrxi3x3(const char *label, shz_mat3x3_t *mtx) {
-
-  printf("Matrix3x3 %s:\n", label);
-  for (int r = 0; r < 3; r++) {
-    printf("| ");
-    for (int c = 0; c < 3; c++) {
-      printf("%f ", mtx->elem2D[r][c]);
-    }
-    printf("|\n");
-  }
-}
-
-void print_xmtrx() {
-  alignas(32) shz_mat4x4_t mtx = {0};
-  shz_xmtrx_store_4x4(&mtx);
-  printf("Matrix4x4:\n");
-  for (int r = 0; r < 4; r++) {
-    printf("| ");
-    for (int c = 0; c < 4; c++) {
-      printf("%f ", mtx.elem2D[r][c]);
-    }
-    printf("|\n");
-  }
-}
-
 
 void render_teapot(void) {
   uint32_t culled_polys = 0;
@@ -482,7 +457,7 @@ void render_teapot(void) {
   float fov = DEFAULT_FOV * SHZ_F_PI / 180.0f;
   float aspect = shz_divf_fsrra(screen_width, (screen_height * XSCALE));
 
-  shz_xmtrx_init_identity();
+  shz_xmtrx_init_identity_safe();
   shz_xmtrx_apply_screen(screen_width, screen_height);
   shz_xmtrx_apply_perspective(fov, aspect, near_z);
 
@@ -506,6 +481,7 @@ void render_teapot(void) {
   shz_mat4x4_t modelView = {0};
   shz_xmtrx_store_4x4(&modelView);
 
+
   // * construct inverse transpose of modelview for normal transformation
 
   //   shz_vec3_t r0 =
@@ -526,6 +502,7 @@ void render_teapot(void) {
 
   alignas(32) shz_mat3x3_t upper_left_t = {0};
   shz_xmtrx_store_transpose_3x3(&upper_left_t);
+
 
   // float inv_det = shz_invf(
   //     shz_vec3_dot(upper_left_t.col[0],
@@ -568,7 +545,41 @@ void render_teapot(void) {
       // .forward = r2,
   };
 
-  // print_matrxi3x3("inverse_transpose", &inverse_transpose);
+  // print_mat3x3("inverse_transpose", &inverse_transpose);
+
+  if (light_cycle == 13337) {
+    print_mat4x4("ModelView", &modelView);
+    print_mat4x4("MVP", &MVP);
+    print_mat3x3("InverseTranspose", &inverse_transpose);
+
+
+    shz_mat3x3_t inv3x3 = {0};
+    // test inverse transpose correctness
+    shz_mat3x3_inverse(&inverse_transpose, &inv3x3);
+    print_mat3x3("InverseTranspose Inverted", &inv3x3);
+    shz_mat3x3_inverse(&inv3x3, &inverse_transpose);
+    print_mat3x3("InverseTranspose Double Inverted", &inverse_transpose);
+
+
+    shz_mat4x4_t inv4x4 = {0};
+    print_mat4x4("ModelView", &modelView);
+    shz_mat4x4_inverse(&modelView, &inv4x4);
+    print_mat4x4("ModelView Inverted", &inv4x4);
+    shz_mat4x4_inverse(&inv4x4, &modelView);
+    print_mat4x4("ModelView Double Inverted", &modelView);
+
+
+    shz_mat3x3_t test_3x3_inverse = {.elem2D = {
+        {1.0f, 2.0f, 3.0f},
+        {4.0f, 5.0f, 6.0f},
+        {7.0f, 8.0f, 9.0f},
+    }};
+    shz_mat3x3_t test_inverse_out = {0};
+
+    shz_mat3x3_inverse(&test_3x3_inverse, &test_inverse_out);
+    print_mat3x3("Test Transpose", &test_inverse_out);
+  }
+
 
   shz_xmtrx_load_4x4(&MVP);
 

@@ -106,7 +106,7 @@ void kos_lookAt(const shz_vec3_t eye, const shz_vec3_t center,
 
 alignas(32) shz_mat4x4_t stored_projection_view = {0};
 void update_projection_view(float fovy) {
-  shz_xmtrx_init_identity();
+  shz_xmtrx_init_identity_safe();
   kos_perspective(vid_mode->width * XSCALE, vid_mode->height, fovy, 0.f, -10.0f);
 
   kos_lookAt((shz_vec3_t){.e = {0.f, -0.00001f, 20.0f}},
