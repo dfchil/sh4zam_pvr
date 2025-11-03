@@ -45,7 +45,7 @@ SHZ_INLINE void shz_mat3x3_transpose(const shz_mat3x3_t *mtrx,
  * Computes the inverse of a 3x3 matrix, saves cycles by not scaling by the
  * determinant, which makes sense when used for normals and lighting that are
  * usually normalized later.
- * 
+ *
  * mtrx: Pointer to the 3x3 matrix to invert.
  * out: Pointer to the resulting inverted matrix.
  *
@@ -87,10 +87,10 @@ SHZ_INLINE void shz_mat3x3_inverse(const shz_mat3x3_t *mtrx,
 
 /**
  * Computes the inverse of a 4x4 matrix.
- * 
+ *
  * mtrx: Pointer to the 4x4 matrix to invert.
  * out: Pointer to the resulting inverted matrix.
- * 
+ *
  * \note
  * Only valid for non-singular matrices.
  * \note
@@ -120,19 +120,13 @@ SHZ_INLINE void shz_mat4x4_inverse(const shz_mat4x4_t *mtrx,
                                        .col[1] = mtrx->col[1].xyz,
                                        .col[2] = mtrx->col[2].xyz},
                        &invM);
-    float inv_w = mtrx->elem2D[3][3];
-    if (inv_w != 1.0f) {
-      inv_w = shz_invf(inv_w);
-    }
+    const float inv_w = shz_invf(mtrx->elem2D[3][3]);
     out->col[0] = (shz_vec4_t){.xyz = invM.col[0], .w = 0.0f};
     out->col[1] = (shz_vec4_t){.xyz = invM.col[1], .w = 0.0f};
     out->col[2] = (shz_vec4_t){.xyz = invM.col[2], .w = 0.0f};
     out->col[3] = (shz_vec4_t){
-        .xyz = inv_w == 1.0f ? shz_vec3_neg(shz_matrix3x3_trans_vec3(
-                                   &invM, mtrx->col[3].xyz))
-                             : shz_vec3_scale(shz_matrix3x3_trans_vec3(
-                                                  &invM, mtrx->col[3].xyz),
-                                              -inv_w),
+        .xyz = shz_vec3_scale(shz_matrix3x3_trans_vec3(&invM, mtrx->col[3].xyz),
+                              -inv_w),
         .w = inv_w};
     return;
   }
