@@ -80,6 +80,36 @@ static alignas(32) dttex_info_t texture256x256;
 static alignas(32) dttex_info_t texture128x128;
 static alignas(32) dttex_info_t texture32x32;
 
+
+SHZ_INLINE void print_mat4x4(const char* label, shz_mat4x4_t* mtx) SHZ_NOEXCEPT {
+    printf("Matrix4x4 %s:\n", label);
+    for (int r = 0; r < 4; r++) {
+        for (int c = 0; c < 4; c++) {
+            printf(" |%12.4f ", mtx->elem2D[c][r]);
+        }
+        printf("|\n");
+    }
+}
+
+SHZ_INLINE void print_mat3x3(const char* label, shz_mat3x3_t* mtx) SHZ_NOEXCEPT {
+    printf("Matrix3x3 %s:\n", label);
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 3; c++) {
+            printf(" |%12.4f", mtx->elem2D[c][r]);
+        }
+        printf("|\n");
+    }
+}
+
+
+SHZ_INLINE void print_xmtrx() SHZ_NOEXCEPT {
+    alignas(32) shz_mat4x4_t mtx = {0};
+    shz_xmtrx_store_4x4(&mtx);
+    printf("xmtrx -> ");
+    // print_mat4x4("xmtrx", &mtx);
+}
+
+
 static inline void set_cube_transform(float scale) {
   alignas(32) shz_mat4x4_t wmat = {0};
   shz_xmtrx_init_translation(cube_state.pos.x, cube_state.pos.y,
