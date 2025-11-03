@@ -563,12 +563,12 @@ void render_teapot(void) {
     print_mat3x3("InverseTranspose Double Inverted", &inverse_transpose);
 
 
-    shz_mat4x4_t test_4x4_inverse = {.elem2D = {
-        {1.0f, 2.0f, 3.0f, 1.0f},
-        {4.0f, 5.0f, 6.0f, 2.0f},
-        {7.0f, 0.0f, 9.0f, 3.0f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    }};
+    shz_mat4x4_t test_4x4_inverse = {
+      .col[0] = {1.0f, 4.0f, 7.0f, 1.0f},
+      .col[1] = {2.0f, 5.0f, 0.0f, 0.0f},
+      .col[2] = {3.0f, 6.0f, 9.0f, 0.0f},
+      .col[3] = {1.0f, 2.0f, 3.0f, 1.0f}
+    };
 
     shz_mat4x4_t inv4x4 = {0};
     print_mat4x4("ModelView", &test_4x4_inverse);
@@ -577,12 +577,12 @@ void render_teapot(void) {
     shz_mat4x4_inverse(&inv4x4, &test_4x4_inverse);
     print_mat4x4("ModelView Double Inverted", &test_4x4_inverse);
 
-
     shz_mat3x3_t test_3x3_inverse = {.elem2D = {
         {1.0f, 2.0f, 3.0f},
         {4.0f, 5.0f, 6.0f},
         {7.0f, 0.0f, 9.0f},
     }};
+    print_mat3x3("Test 3x3", &test_3x3_inverse);
     shz_mat3x3_t test_inverse_out = {0};
     shz_mat3x3_inverse(&test_3x3_inverse, &test_inverse_out);
     print_mat3x3("Test inverse", &test_inverse_out);

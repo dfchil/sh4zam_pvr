@@ -67,4 +67,7 @@ void shz_mat3x3_inverse_unscaled(const shz_mat3x3_t* mtrx, shz_mat3x3_t* out);
 
 
 
+void shz_mat4x4_inverse_from_glm(const shz_mat4x4_t *mtrx,
+  shz_mat4x4_t *out);
+
 #endif  // CODE_MAT_INVERSE_H
