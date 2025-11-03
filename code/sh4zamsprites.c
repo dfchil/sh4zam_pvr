@@ -31,6 +31,8 @@
 
 #include <sh4zamsprites/sh4zmdl.h> /* sh4zam model loading and rendering */
 
+#include <sh4zamsprites/sh4zmdl.h> /* sh4zam model loading and rendering */
+
 #define DEFAULT_FOV 75.0f // Field of view, adjust with dpad up/down
 #define ZOOM_SPEED 0.3f
 #define MODEL_SCALE 3.0f
@@ -561,23 +563,33 @@ void render_teapot(void) {
     print_mat3x3("InverseTranspose Double Inverted", &inverse_transpose);
 
 
+    shz_mat4x4_t test_4x4_inverse = {.elem2D = {
+        {1.0f, 2.0f, 3.0f, 1.0f},
+        {4.0f, 5.0f, 6.0f, 2.0f},
+        {7.0f, 0.0f, 9.0f, 3.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    }};
+
     shz_mat4x4_t inv4x4 = {0};
-    print_mat4x4("ModelView", &modelView);
-    shz_mat4x4_inverse(&modelView, &inv4x4);
+    print_mat4x4("ModelView", &test_4x4_inverse);
+    shz_mat4x4_inverse(&test_4x4_inverse, &inv4x4);
     print_mat4x4("ModelView Inverted", &inv4x4);
-    shz_mat4x4_inverse(&inv4x4, &modelView);
-    print_mat4x4("ModelView Double Inverted", &modelView);
+    shz_mat4x4_inverse(&inv4x4, &test_4x4_inverse);
+    print_mat4x4("ModelView Double Inverted", &test_4x4_inverse);
 
 
     shz_mat3x3_t test_3x3_inverse = {.elem2D = {
         {1.0f, 2.0f, 3.0f},
         {4.0f, 5.0f, 6.0f},
-        {7.0f, 8.0f, 9.0f},
+        {7.0f, 0.0f, 9.0f},
     }};
     shz_mat3x3_t test_inverse_out = {0};
-
     shz_mat3x3_inverse(&test_3x3_inverse, &test_inverse_out);
-    print_mat3x3("Test Transpose", &test_inverse_out);
+    print_mat3x3("Test inverse", &test_inverse_out);
+
+    shz_mat3x3_t test_3x3_double_inverse = {0};
+    shz_mat3x3_inverse(&test_inverse_out, &test_3x3_double_inverse);
+    print_mat3x3("Test double inverse", &test_3x3_double_inverse  );
   }
 
 
