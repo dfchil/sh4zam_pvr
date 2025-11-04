@@ -43,7 +43,7 @@ typedef struct __attribute__((packed)) {
     struct {
       uint16_t tri_strips;
       uint16_t quad_strips;
-    }
+    };
   } num;
   sh4zmdl_type_e type;
   uint8_t padding[27];

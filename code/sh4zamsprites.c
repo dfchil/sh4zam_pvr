@@ -99,11 +99,11 @@ SHZ_INLINE void print_mat3x3(const char* label,
     }
 }
 
-SHZ_INLINE void print_xmtrx() SHZ_NOEXCEPT {
+SHZ_INLINE void print_xmtrx(const char* label) SHZ_NOEXCEPT {
     alignas(32) shz_mat4x4_t mtx = {0};
     shz_xmtrx_store_4x4(&mtx);
     printf("xmtrx -> ");
-    // print_mat4x4("xmtrx", &mtx);
+    print_mat4x4(label, &mtx);
 }
 
 static inline void set_cube_transform(float scale) {
@@ -488,97 +488,130 @@ typedef struct __attribute__((packed)) {
 static uint16_t light_rotation = 13337;
 static uint16_t light_height = 4999;
 
-
-static inline shz_vec4_t perspective_swizzle(shz_vec4_t v) {
-  const float inv_w = shz_invf_fsrra(v.x);
-  return (shz_vec4_t){.x = v.y * inv_w, .y = v.z * inv_w, .z = inv_w, .w = 0.0};
+static inline shz_vec3_t perspective_n_swizzle(shz_vec4_t v) {
+    const float inv_w = shz_invf_fsrra(v.x);
+    return shz_vec3_init(v.y * inv_w, v.z * inv_w, inv_w);
 }
 void render_teapot(void) {
-    uint32_t culled_polys = 0;
-
     float screen_width = vid_mode->width * XSCALE;
     float screen_height = vid_mode->height;
     float near_z = 0.0f;
     float fov = DEFAULT_FOV * SHZ_F_PI / 180.0f;
     float aspect = shz_divf_fsrra(screen_width, (screen_height * XSCALE));
 
+    shz_vec3_t eye = shz_vec3_init(0.0f, -0.00001f, 30.0f);
+
     shz_xmtrx_init_identity_safe();
+    // shz_xmtrx_apply_permutation_wxyz();
+    kos_lookAt(eye, (shz_vec3_t){.e = {0.0f, 0.0f, 0.0f}},
+               (shz_vec3_t){.e = {0.0f, 0.0f, 1.0f}});
+
+    shz_xmtrx_translate(cube_state.pos.x, cube_state.pos.y - 10.0f,
+                        cube_state.pos.z - 10.0f);
+    // shz_xmtrx_apply_scale(MODEL_SCALE , MODEL_SCALE, MODEL_SCALE);
+    shz_xmtrx_apply_rotation_x(cube_state.rot.x + SHZ_F_PI * 0.75f - 0.1f);
+    shz_xmtrx_apply_rotation_y(cube_state.rot.y + SHZ_F_PI * 0.25f);
+
+    shz_mat4x4_t model_view = {0};
+    shz_mat4x4_t inverse_transpose = {0};
+    shz_xmtrx_store_4x4(&model_view);
+    shz_mat4x4_inverse(&model_view, &inverse_transpose);
+    shz_mat4x4_transpose(&inverse_transpose, &inverse_transpose);
+
+    shz_xmtrx_init_identity();
     shz_xmtrx_apply_permutation_wxyz();
     shz_xmtrx_apply_screen(screen_width, screen_height);
     shz_xmtrx_apply_perspective(fov, aspect, near_z);
+    shz_xmtrx_apply_4x4(&model_view);
 
-    kos_lookAt((shz_vec3_t){0.0f, -0.00001f, 30.0f},
-               (shz_vec3_t){0.0f, 0.0f, 0.0f}, (shz_vec3_t){0.0f, 0.0f, -1.0f});
+    if (light_rotation == 13337) {
+        print_xmtrx("MVP Matrix");
+        print_mat4x4("ModelView Matrix", &model_view);
+        print_mat4x4("Inverse Transpose Matrix", &inverse_transpose);
 
-    shz_xmtrx_translate(cube_state.pos.x, cube_state.pos.y + 10.0f, cube_state.pos.z - 10.0f);
-    // shz_xmtrx_apply_scale(MODEL_SCALE , MODEL_SCALE, MODEL_SCALE);
-    shz_xmtrx_apply_rotation_x(cube_state.rot.x + SHZ_F_PI * 0.5f + 0.1f);
-    shz_xmtrx_apply_rotation_y(cube_state.rot.y + SHZ_F_PI * 1.25f);
+        //     shz_mat4x4_t test_4x4_inverse = {.col[0] =
+        //     {1.0f, 4.0f, 7.0f, 1.0f},
+        //                                      .col[1] = {2.0f, 5.0f, 0.0f,
+        //                                      0.0f}, .col[2] =
+        //                                      {3.0f, 6.0f, 9.0f, 0.0f},
+        //                                      .col[3] =
+        //                                      {1.0f, 2.0f, 3.0f, 1.0f}};
 
-    // if (light_rotation == 13337) {
-    //     shz_mat4x4_t test_4x4_inverse = {.col[0] = {1.0f, 4.0f, 7.0f, 1.0f},
-    //                                      .col[1] = {2.0f, 5.0f, 0.0f, 0.0f},
-    //                                      .col[2] = {3.0f, 6.0f, 9.0f, 0.0f},
-    //                                      .col[3] = {1.0f, 2.0f, 3.0f, 1.0f}};
+        //     shz_mat4x4_t inv4x4 = {0};
+        //     print_mat4x4("test_4x4_inverse", &test_4x4_inverse);
+        //     shz_mat4x4_inverse(&test_4x4_inverse, &inv4x4);
+        //     print_mat4x4("test_4x4_inverse Inverted", &inv4x4);
+        //     shz_mat4x4_inverse(&inv4x4, &test_4x4_inverse);
+        //     print_mat4x4("test_4x4_inverse Double Inverted",
+        //     &test_4x4_inverse);
 
-    //     shz_mat4x4_t inv4x4 = {0};
-    //     print_mat4x4("test_4x4_inverse", &test_4x4_inverse);
-    //     shz_mat4x4_inverse(&test_4x4_inverse, &inv4x4);
-    //     print_mat4x4("test_4x4_inverse Inverted", &inv4x4);
-    //     shz_mat4x4_inverse(&inv4x4, &test_4x4_inverse);
-    //     print_mat4x4("test_4x4_inverse Double Inverted", &test_4x4_inverse);
+        //     shz_mat3x3_t test_3x3_inverse = {.elem2D = {
+        //                                          {1.0f, 2.0f, 3.0f},
+        //                                          {4.0f, 5.0f, 6.0f},
+        //                                          {7.0f, 0.0f, 9.0f},
+        //                                      }};
+        //     print_mat3x3("Test 3x3", &test_3x3_inverse);
+        //     shz_mat3x3_t test_inverse_out = {0};
+        //     shz_mat3x3_inverse(&test_3x3_inverse, &test_inverse_out);
+        //     print_mat3x3("Test inverse", &test_inverse_out);
 
-    //     shz_mat3x3_t test_3x3_inverse = {.elem2D = {
-    //                                          {1.0f, 2.0f, 3.0f},
-    //                                          {4.0f, 5.0f, 6.0f},
-    //                                          {7.0f, 0.0f, 9.0f},
-    //                                      }};
-    //     print_mat3x3("Test 3x3", &test_3x3_inverse);
-    //     shz_mat3x3_t test_inverse_out = {0};
-    //     shz_mat3x3_inverse(&test_3x3_inverse, &test_inverse_out);
-    //     print_mat3x3("Test inverse", &test_inverse_out);
-
-    //     shz_mat3x3_t test_3x3_double_inverse = {0};
-    //     shz_mat3x3_inverse(&test_inverse_out, &test_3x3_double_inverse);
-    //     print_mat3x3("Test double inverse", &test_3x3_double_inverse);
-    // }
+        //     shz_mat3x3_t test_3x3_double_inverse = {0};
+        //     shz_mat3x3_inverse(&test_inverse_out, &test_3x3_double_inverse);
+        //     print_mat3x3("Test double inverse", &test_3x3_double_inverse);
+    }
 
     pvr_dr_state_t dr_state;
     pvr_dr_init(&dr_state);
 
-    light_rotation+=223;
-    light_height+=277;
+    light_rotation += 223;
+    light_height += 127;
+    const shz_sincos_t xy_rotation = shz_sincosu16(light_rotation);
+    const shz_sincos_t height_variantion = shz_sincosu16(light_height);
+
     const float light_radius = 20.0f;
-    float height = shz_sincosu16(light_height).sin;
-    shz_sincos_t sc =
-        shz_sincosu16(light_rotation); 
-    shz_vec3_t light_pos = { .x = sc.cos * light_radius,
-                             .y = sc.sin * light_radius,
-                             .z = -1.0f + light_radius + height * light_radius};
 
-    shz_vec4_t light_quad[4] = {
-        {.e = {-1.0f, -1.0f, 0.0f, 1.0f}},
-        {.e = {1.0f, -1.0f, 0.0f, 1.0f}},
-        {.e = {1.0f, 1.0f, 0.0f, 1.0f}},
-        {.e = {-1.0f, 1.0f, 0.0f, 1.0f}},
+    shz_vec3_t light_color =
+        shz_vec3_init(0.5f + (xy_rotation.cos + height_variantion.cos) * 0.25f,
+                      0.5f + (xy_rotation.sin + height_variantion.sin) * 0.25f,
+                      0.5f + (height_variantion.cos + xy_rotation.sin) * 0.25f);
+
+    alignas(32) shz_vec3_t light_pos = {
+        .x = xy_rotation.cos * light_radius,
+        .y = xy_rotation.sin * light_radius,
+        .z = -4.0f + light_radius + height_variantion.sin * light_radius};
+
+#define LIGHT_CUBE_SIZE 0.33f
+
+    alignas(32) shz_vec4_t light_quad[] = {
+        {.e = {-LIGHT_CUBE_SIZE, -LIGHT_CUBE_SIZE, 0.0f, 1.0f}},
+        {.e = {LIGHT_CUBE_SIZE, -LIGHT_CUBE_SIZE, 0.0f, 1.0f}},
+        {.e = {LIGHT_CUBE_SIZE, LIGHT_CUBE_SIZE, 0.0f, 1.0f}},
+        {.e = {-LIGHT_CUBE_SIZE, LIGHT_CUBE_SIZE, 0.0f, 1.0f}},
+        {.e = {0.0f, 0.0f, 0.0f, 1.0f}},
+
     };
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
         light_quad[i].xyz =
-            shz_vec3_add(light_quad[i].xyz, shz_vec3_scale(light_pos, 1.0f));
-        light_quad[i] =  perspective_swizzle(shz_xmtrx_transform_vec4(light_quad[i]));
+            perspective_n_swizzle(shz_xmtrx_transform_vec4((shz_vec4_t){
+                .xyz = shz_vec3_add(light_quad[i].xyz, light_pos), .w = 1.0f}));
     }
-    shz_vec4_t scene_center = perspective_swizzle(shz_xmtrx_transform_vec4(
-        (shz_vec4_t){.x = 0.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f}));
+    alignas(32) shz_vec4_t scene_center = (shz_vec4_t){
+        .xyz = perspective_n_swizzle(shz_xmtrx_transform_vec4(
+            (shz_vec4_t){.x = 0.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f})),
+        .w = 1.0f};
 
-    pvr_sprite_cxt_t spr_cxt; 
+    pvr_sprite_cxt_t spr_cxt;
     pvr_sprite_cxt_col(&spr_cxt, PVR_LIST_OP_POLY);
     spr_cxt.gen.culling = PVR_CULLING_CW;
     pvr_sprite_hdr_t* light_hdr = (pvr_sprite_hdr_t*)pvr_dr_target(dr_state);
     pvr_sprite_compile(light_hdr, &spr_cxt);
-    light_hdr->argb = 0xFFFF00FF;
+    light_hdr->argb = (uint32_t)(light_color.x * 255) << 16 |
+                      (uint32_t)(light_color.y * 255) << 8 |
+                      (uint32_t)(light_color.z * 255) | 0xFF000000;
+
     pvr_dr_commit(light_hdr);
 
-    draw_sprite_line(&((shz_vec4_t){.xyz = light_quad[0].xyz, .w = 1.0f}),
+    draw_sprite_line(&((shz_vec4_t){.xyz = light_quad[4].xyz, .w = 1.0f}),
                      &scene_center, 0.0f, &dr_state);
 
     pvr_sprite_col_t* light = (pvr_sprite_col_t*)pvr_dr_target(dr_state);
@@ -605,56 +638,72 @@ void render_teapot(void) {
     pvr_poly_cxt_t cxt;
     pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
     cxt.gen.culling = PVR_CULLING_CW;
+    cxt.gen.specular = PVR_SPECULAR_ENABLE;
 
     pvr_poly_hdr_t* hdrpntr = (pvr_poly_hdr_t*)pvr_dr_target(dr_state);
     pvr_poly_compile(hdrpntr, &cxt);
     pvr_dr_commit(hdrpntr);
 
+    shz_vec3_t spec_light_pos = shz_mat4x4_trans_vec3(&model_view, light_pos);
+    shz_vec3_t spec_view_pos = shz_mat4x4_trans_vec3(&model_view, eye);
+
     for (uint32_t p = 0; p < num_polys; p += 2) {
+        /* ambient light */
+        shz_vec3_t final_light = (shz_vec3_t){.x = 0.2f, .y = 0.2f, .z = 0.2f};
+
+        /* diffuse light */
         shz_vec3_t face_normal = polys[p].normal;
         face_normal = shz_vec3_normalize(face_normal);
         shz_vec3_t light_dir =
             shz_vec3_normalize(shz_vec3_sub(light_pos, polys[p].v1));
 
-        float light_intensity = shz_vec3_dot(face_normal, light_dir);
-        if (light_intensity < 0.1f) {
-            light_intensity = 0.1f;
-        }
-        if (light_intensity > 1.0f) {
-            light_intensity = 1.0f;
-        }
+        float light_intensity =
+            SHZ_MAX(shz_vec3_dot(face_normal, light_dir), 0.0f);
 
-        shz_vec3_t ambient_light = {0.1f, 0.1f, 0.1f};
-        shz_vec3_t diffuse_light =
-            (shz_vec3_t){light_intensity, light_intensity, light_intensity};
-        shz_vec3_t final_light = shz_vec3_clamp(
-            shz_vec3_add(ambient_light, diffuse_light), 0.0f, 1.0f);
+        if (light_intensity > 0.0f) {
+            // specular
+            shz_vec3_t spec_normal = shz_vec3_normalize(
+                shz_mat4x4_trans_vec3(&inverse_transpose, polys[p].v1));
+            shz_vec3_t spec_vert_pos =
+                shz_mat4x4_trans_vec3(&model_view, polys[p].v1);
+            shz_vec3_t spec_light_dir =
+                shz_vec3_normalize(shz_vec3_sub(spec_light_pos, spec_vert_pos));
+
+            const float specular_strength = 0.5f;
+            shz_vec3_t spec_view_dir =
+                shz_vec3_normalize(shz_vec3_sub(spec_view_pos, spec_vert_pos));
+            shz_vec3_t reflect_dir =
+                shz_vec3_reflect(shz_vec3_neg(spec_light_dir), spec_normal);
+            float const dot_spec =
+                SHZ_MAX(shz_vec3_dot(spec_view_dir, reflect_dir), 0.0f);
+            light_intensity += specular_strength * light_intensity * shz_powf(dot_spec, 32.0f);
+
+            final_light = shz_vec3_add(
+                final_light,
+                (shz_vec3_t){.e = {light_intensity * light_color.x,
+                                   light_intensity * light_color.y,
+                                   light_intensity * light_color.z}});
+
+        }
+        final_light = shz_vec3_clamp(final_light, 0.0f, 1.0f);
+        uint32_t vertex_color = ((uint32_t)(final_light.x * 255.0f) << 16) |
+                                ((uint32_t)(final_light.y * 255.0f) << 8) |
+                                ((uint32_t)(final_light.z * 255.0f)) |
+                                0xFF000000;
 
         for (uint32_t i = 0; i < 2; i++) {
             stl_poly_t* poly = &polys[p + i];
-            shz_vec4_t v1 = perspective_swizzle(shz_xmtrx_transform_vec4(
-                (shz_vec4_t){.xyz = poly->v1, .w = 1.0f}));
+            alignas(32) shz_vec3_t v1 =
+                perspective_n_swizzle(shz_xmtrx_transform_vec4(
+                    (shz_vec4_t){.xyz = poly->v1, .w = 1.0f}));
 
-            shz_vec4_t v2 = perspective_swizzle(shz_xmtrx_transform_vec4(
-                (shz_vec4_t){.xyz = poly->v2, .w = 1.0f}));
-            
-            shz_vec4_t v3 = perspective_swizzle(shz_xmtrx_transform_vec4(
-              (shz_vec4_t){.xyz = poly->v3, .w = 1.0f}));
+            alignas(32) shz_vec3_t v2 =
+                perspective_n_swizzle(shz_xmtrx_transform_vec4(
+                    (shz_vec4_t){.xyz = poly->v2, .w = 1.0f}));
 
-            uint32_t vertex_color = ((uint32_t)(final_light.x * 255.0f) << 16) |
-                                    ((uint32_t)(final_light.y * 255.0f) << 8) |
-                                    ((uint32_t)(final_light.z * 255.0f)) |
-                                    0xFF000000;
-
-            // final_light = shz_vec3_normalize(normal_view);
-            //                         final_light =
-            //                         shz_vec3_normalize(light_dir);
-            // vertex_color = ((uint32_t)((1.0f + final_light.x) * 127.0f) <<
-            // 16) |
-            //                ((uint32_t)((1.0f + final_light.y) * 127.0f) << 8)
-            //                |
-            //                ((uint32_t)((1.0f + final_light.z) * 127.0f)) |
-            //                0xFF000000;
+            alignas(32) shz_vec3_t v3 =
+                perspective_n_swizzle(shz_xmtrx_transform_vec4(
+                    (shz_vec4_t){.xyz = poly->v3, .w = 1.0f}));
 
             pvr_vertex_t* tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
             tri->flags = PVR_CMD_VERTEX;
@@ -678,9 +727,7 @@ void render_teapot(void) {
             tri->argb = vertex_color;
             pvr_dr_commit(tri);
         }
-        // // }
     }
-    // printf("Culled polygons: %u / %u\n", culled_polys, num_polys);
     pvr_dr_finish();
 }
 
@@ -771,7 +818,8 @@ static inline int update_state() {
 
 KOS_INIT_FLAGS(INIT_DEFAULT | INIT_MALLOCSTATS);
 
-int main(int argc, char* argv[]) {
+int main(void) {
+    printf("Starting main\n");
 #ifdef DEBUG
     gdb_init();
 #endif
