@@ -80,8 +80,11 @@ CFLAGS+=\
 
 all: ${TARGETNAME}.elf
 
-${TARGETNAME}.elf: $(OBJS)
-	$(CC) $(CFLAGS)  $(OBJS) -o $@ 
+${TARGETNAME}.elf: code/part_o_sh4zamsprites.c $(OBJS)
+	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
+
+specular.elf: code/part_n+1_specular.c $(OBJS)
+	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
 
 include $(KOS_BASE)/Makefile.rules
 
@@ -116,6 +119,9 @@ $(TEXDIR_ARGB1555_VQ_TW)/%.dt: assets/textures/argb1555_vq_tw/%.png $(TEXDIR_ARG
 
 cdi: ${TARGETNAME}.elf
 	mkdcdisc -n ${TARGETNAME} -e $<  -N -o ${TARGETNAME}.cdi -v 3 -m
+
+specular.cdi: specular.elf
+	mkdcdisc -n ${TARGETNAME} -e $<  -N -o specular.cdi -v 3 -m
 
 run: ${TARGETNAME}.elf
 	$(KOS_LOADER) ${TARGETNAME}.elf
