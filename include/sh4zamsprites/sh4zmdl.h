@@ -36,11 +36,11 @@ typedef struct __attribute__((packed)) {
 
 typedef struct __attribute__((packed)) {
   union {
-    struct {
+    struct __attribute__((packed)) {
       uint16_t tri_faces;
       uint16_t quad_faces;
     };
-    struct {
+    struct __attribute__((packed)) {
       uint16_t tri_strips;
       uint16_t quad_strips;
     };

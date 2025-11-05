@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-TARGET=part_n+1_specular.elf
+TARGET=part_n+2_specular.elf
 
 #set the KOS environtment variables
 source /opt/toolchains/dc/kos/environ.sh

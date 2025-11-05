@@ -47,15 +47,12 @@ ifdef DCPROF
 	DEFINES += -DDCPROF
 endif
 
-
-
 INCLUDES= -I$(KOS_BASE)/include \
 		-I$(KOS_BASE)/kernel/arch/dreamcast/include \
 		-I$(KOS_BASE)/addons/include \
 		-I$(KOS_BASE)/../kos-ports/include \
 		-I$(KOS_BASE)/utils \
 		-I$(shell pwd)/include \
-
 
 CFLAGS+=\
 		$(KOS_CSTD) \
@@ -78,7 +75,6 @@ CFLAGS+=\
 		${DEFINES} \
 
 
-
 SOURCES := $(shell find . -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.*/code/\(.*\).c,\1.c,g')
 $(info $$SOURCES is [${SOURCES}])
 
@@ -87,24 +83,10 @@ CDIS := $(SOURCES:.c=.cdi)
 
 $(info $$'ELFS' is [${ELFS}])
 
-all: ${ELFS}
+elfs: ${ELFS}
 
 $(ELFS): %.elf: code/%.c $(OBJS)
 	$(CC) $(CFLAGS) $< $(OBJS) -o $@
-
-
-# ${TARGETNAME}.elf: code/part_o_sh4zamsprites.c $(OBJS)
-# 	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
-
-
-
-
-# part_n+1_specular.elf: code/$*.c $(OBJS)
-# 	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
-
-
-# part_%.elf: code/$*.c $(OBJS)
-# 	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
 
 include $(KOS_BASE)/Makefile.rules
 
@@ -137,15 +119,11 @@ $(TEXDIR_ARGB1555_VQ_TW):
 $(TEXDIR_ARGB1555_VQ_TW)/%.dt: assets/textures/argb1555_vq_tw/%.png $(TEXDIR_ARGB1555_VQ_TW)
 	pvrtex -f ARGB1555 -c -i $< -o $@
 
-$(ELFS:.elf=.cdi): %.cdi: %.elf
+$(CDIS): %.cdi: %.elf
 	mkdcdisc -n $* -e $<  -N -o $*.cdi -v 3 -m
 
+cdis: ${CDIS}
 
-# run: ${TARGETNAME}.elf
-# 	$(KOS_LOADER) ${TARGETNAME}.elf
-
-# dist:
-# 	$(KOS_STRIP) ${TARGETNAME}.elf
 
 clean:
 	-rm -rf $(ELFS) $(OBJS) *.cdi

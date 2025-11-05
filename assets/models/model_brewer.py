@@ -136,10 +136,10 @@ class Model():
 
     def write_to_sh4zmdl(self, filepath:str):
         with open(filepath, "wb") as f:
-            f.write(struct.pack("<I", len(self.triangles)))
-            f.write(struct.pack("<I", len(self.quads)))
+            f.write(struct.pack("<H", len(self.triangles)))
+            f.write(struct.pack("<H", len(self.quads)))
             f.write(struct.pack("<B", 3))  # type: triangles and quads
-            f.write(b'\0' * 23)  # padding to 32 bytes
+            f.write(b'\0' * 27)  # padding to 32 bytes
             for tri in self.triangles:
                 normal = self.normal(tri)
                 f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
@@ -147,7 +147,7 @@ class Model():
                     vertex = self.vertices[vi.vertex_index]
                     f.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
             for quad in self.quads:
-                v1, v2, v3, v4 = tuple([v for v in reversed([quad.v1, quad.v2, quad.v3, quad.v4])])
+                v1, v2, v3, v4 = tuple(v for v in [quad.v1, quad.v2, quad.v3, quad.v4])
                 normal = self.normal(quad)
                 f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
                 for vi in [v1, v2, v3, v4]:
