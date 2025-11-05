@@ -78,13 +78,33 @@ CFLAGS+=\
 		${DEFINES} \
 
 
-all: ${TARGETNAME}.elf
 
-${TARGETNAME}.elf: code/part_o_sh4zamsprites.c $(OBJS)
-	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
+SOURCES := $(shell find . -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.*/code/\(.*\).c,\1.c,g')
+$(info $$SOURCES is [${SOURCES}])
 
-specular.elf: code/part_n+1_specular.c $(OBJS)
-	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
+ELFS := $(SOURCES:.c=.elf)
+CDIS := $(SOURCES:.c=.cdi)
+
+$(info $$'ELFS' is [${ELFS}])
+
+all: ${ELFS}
+
+$(ELFS): %.elf: code/%.c $(OBJS)
+	$(CC) $(CFLAGS) $< $(OBJS) -o $@
+
+
+# ${TARGETNAME}.elf: code/part_o_sh4zamsprites.c $(OBJS)
+# 	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
+
+
+
+
+# part_n+1_specular.elf: code/$*.c $(OBJS)
+# 	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
+
+
+# part_%.elf: code/$*.c $(OBJS)
+# 	$(CC) $(CFLAGS) $< $(OBJS) -o $@ 
 
 include $(KOS_BASE)/Makefile.rules
 
@@ -117,17 +137,15 @@ $(TEXDIR_ARGB1555_VQ_TW):
 $(TEXDIR_ARGB1555_VQ_TW)/%.dt: assets/textures/argb1555_vq_tw/%.png $(TEXDIR_ARGB1555_VQ_TW)
 	pvrtex -f ARGB1555 -c -i $< -o $@
 
-cdi: ${TARGETNAME}.elf
-	mkdcdisc -n ${TARGETNAME} -e $<  -N -o ${TARGETNAME}.cdi -v 3 -m
+$(ELFS:.elf=.cdi): %.cdi: %.elf
+	mkdcdisc -n $* -e $<  -N -o $*.cdi -v 3 -m
 
-specular.cdi: specular.elf
-	mkdcdisc -n ${TARGETNAME} -e $<  -N -o specular.cdi -v 3 -m
 
-run: ${TARGETNAME}.elf
-	$(KOS_LOADER) ${TARGETNAME}.elf
+# run: ${TARGETNAME}.elf
+# 	$(KOS_LOADER) ${TARGETNAME}.elf
 
-dist:
-	$(KOS_STRIP) ${TARGETNAME}.elf
+# dist:
+# 	$(KOS_STRIP) ${TARGETNAME}.elf
 
 clean:
-	-rm -rf ${TARGETNAME}.elf ${TARGETNAME}.cdi $(OBJS)
+	-rm -rf $(ELFS) $(OBJS) *.cdi

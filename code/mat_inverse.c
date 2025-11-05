@@ -34,7 +34,6 @@ void shz_mat3x3_inverse(const shz_mat3x3_t* mtrx,
 
 void shz_mat4x4_inverse(const shz_mat4x4_t* mtrx,
                         shz_mat4x4_t* out) SHZ_NOEXCEPT {
-
     assert(mtrx != out &&
            "shz_mat4x4_inverse: in-place inversion is not supported");
     /**
@@ -55,6 +54,7 @@ void shz_mat4x4_inverse(const shz_mat4x4_t* mtrx,
                                            .col[1] = mtrx->col[1].xyz,
                                            .col[2] = mtrx->col[2].xyz},
                            &invM);
+
         float inv_w = mtrx->col[3].w;
         if (inv_w != 1.0f) {
             inv_w = shz_invf(inv_w);
