@@ -132,7 +132,7 @@ void render_txr_tr_cube(void) {
     pvr_sprite_cxt_txr(&cxt, PVR_LIST_TR_POLY, texture256x256.pvrformat,
                        texture256x256.width, texture256x256.height,
                        texture256x256.ptr, PVR_FILTER_BILINEAR);
-    cxt.gen.specular = PVR_SPECULAR_ENABLE;
+    // cxt.gen.specular = PVR_SPECULAR_ENABLE;
     cxt.gen.culling = PVR_CULLING_NONE;
     pvr_dr_init(&dr_state);
     pvr_sprite_hdr_t hdr;
@@ -172,7 +172,7 @@ void render_cubes_cube() {
                            texture128x128.width, texture128x128.height,
                            texture128x128.ptr, PVR_FILTER_NEAREST);
     }
-    cxt.gen.specular = PVR_SPECULAR_ENABLE;
+    // cxt.gen.specular = PVR_SPECULAR_ENABLE;
     cxt.gen.culling = PVR_CULLING_NONE;
     pvr_dr_state_t dr_state;
     pvr_dr_init(&dr_state);

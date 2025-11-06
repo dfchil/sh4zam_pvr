@@ -64,7 +64,7 @@ void shz_mat4x4_inverse(const shz_mat4x4_t* mtrx,
         out->col[2] = (shz_vec4_t){.xyz = invM.col[2], .w = 0.0f};
         out->col[3] = (shz_vec4_t){
             .xyz = shz_vec3_scale(
-                shz_matrix3x3_trans_vec3(&invM, mtrx->col[3].xyz), -inv_w),
+                shz_mat3x3_trans_vec3(&invM, mtrx->col[3].xyz), -inv_w),
             .w = inv_w};
         return;
     }

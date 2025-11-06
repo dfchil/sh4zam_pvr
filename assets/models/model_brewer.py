@@ -57,6 +57,14 @@ class QuadIndex ():
         self.v3 = v3
         self.v4 = v4
 
+class TriangleFan ():
+    def __init__(self, center:VertexIndex):
+        self.center = center
+        self.vertices:list[VertexIndex] = []
+
+    def add_vertex(self, vertex:VertexIndex):
+        self.vertices.append(vertex)
+
 class Model():
     def __init__(self):
         self.vertices:list[Coordinate3f] = []
@@ -109,6 +117,52 @@ class Model():
     def __str__(self) -> str:
         return f"Model(vertices={len(self.vertices)}, normals={len(self.vertex_normals)}, texcoords={len(self.tex_coords)}, triangles={len(self.triangles)}, quads={len(self.quads)})"
 
+    def fan_triangles(self):
+        potential_fans:dict[int, list[int]] = {}
+        output_fans:list[TriangleFan] = []
+        for tri_idx in range(len(self.triangles)):
+            tri = self.triangles[tri_idx]
+            for vi in [tri.v1, tri.v2, tri.v3]:
+                fan_center = vi.vertex_index
+                if fan_center not in potential_fans:
+                    potential_fans[fan_center] = []
+                potential_fans[fan_center].append(tri_idx)
+        for fan_center in potential_fans:
+            if len(potential_fans[fan_center]) > 10:
+                print("Fan at vertex", fan_center, "has", len(potential_fans[fan_center]), "triangles")
+                pairs:dict[int, tuple[int, int]] = {}
+                for tri_idx in potential_fans[fan_center]:
+                    tri = self.triangles[tri_idx]
+                    pair = [tri.v1.vertex_index, tri.v2.vertex_index, tri.v3.vertex_index]
+                    pair.remove(fan_center)
+                    pairs[pair[0]] = (pair[1], tri_idx)
+
+                #start from lowest indexed vertex
+                fanorder:list[tuple[int, int]] = [pairs[sorted(pairs.keys())[0]]]
+                while len(pairs) > 0:
+                    nxt:typing.Optional[tuple[int, int]] = pairs.pop(fanorder[-1][0], None)
+                    if nxt is not None:
+                        fanorder.append(nxt)
+                    else:
+                        break
+                #todo: handle fans with gaps
+                first_tri = self.triangles[fanorder[0][1]]
+                center_verts = [v for v in [first_tri.v1, first_tri.v2, first_tri.v3] if v.vertex_index == fan_center]
+                fan = TriangleFan(center_verts[0])
+                for vi, tri_idx in fanorder:
+                    tri = self.triangles[tri_idx]
+                    nxt_vert = [v for v in [tri.v1, tri.v2, tri.v3] if v.vertex_index == vi]
+                    fan.add_vertex(nxt_vert[0])
+                output_fans.append(fan)
+                # remove these triangles from the model
+                for _, tri_idx in fanorder:
+                    self.triangles[tri_idx] = None  # mark for removal
+        # clean up triangles
+        self.triangles = [tri for tri in self.triangles if tri is not None]
+
+        return output_fans
+            
+
     def write_to_stl(self, filepath:str):
         with open(filepath, "wb") as f:
             f.seek(80)
@@ -134,7 +188,7 @@ class Model():
                     f.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
                 f.write(struct.pack("<H", 0))
 
-    def write_to_sh4zmdl(self, filepath:str):
+    def write_to_shzmdl(self, filepath:str):
         with open(filepath, "wb") as f:
             f.write(struct.pack("<H", len(self.triangles)))
             f.write(struct.pack("<H", len(self.quads)))
@@ -157,8 +211,11 @@ class Model():
 
 # source https://graphics.cs.utah.edu/courses/cs6620/fall2013/?prj=5
 model = Model().load_from_obj(pwd + "/teapot2.obj")
-print(model)
 # model.quads = []  # discard quads for STL export
 # model.triangles = []
-model.write_to_stl(pwd + "/teapot.stl")
-model.write_to_sh4zmdl(pwd + "/teapot.sh4zmdl")
+# model.write_to_stl(pwd + "/teapot.stl")
+# model.write_to_shzmdl(pwd + "/teapot.shzmdl")
+
+fans = model.fan_triangles()
+print(fans)
+print(model)
