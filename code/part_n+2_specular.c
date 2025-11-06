@@ -14,9 +14,9 @@
 
 #define SUPERSAMPLING 1  // Set to 1 to enable horizontal FSAA, 0 to disable
 #if SUPERSAMPLING == 1
-#define XSCALE 2.0f
+#define XSCALE 2
 #else
-#define XSCALE 1.0f
+#define XSCALE 1
 #endif
 
 #ifndef SHOWFRAMETIMES
@@ -233,12 +233,20 @@ void render_teapot(void) {
     cxt.gen.specular = PVR_SPECULAR_ENABLE;
 
     pvr_poly_hdr_t* hdrpntr = (pvr_poly_hdr_t*)pvr_dr_target(dr_state);
+    // hdrpntr->cmd = PVR_CMD_USERCLIP;
+    // hdrpntr->mode1 = 0;
+    // hdrpntr->mode2 = 0;
+    // hdrpntr->mode3 = 0;
+    // hdrpntr->a = 0.0f;
+    // hdrpntr->start_x = 0;
+    // hdrpntr->start_y = 0;
+    // hdrpntr->end_x = (vid_mode->width * XSCALE) >> 6;
+    // hdrpntr->end_y = vid_mode->height >> 6;
+    // pvr_dr_commit(hdrpntr);
+
+    // hdrpntr = (pvr_poly_hdr_t*)pvr_dr_target(dr_state);
     pvr_poly_compile(hdrpntr, &cxt);
-    hdrpntr->start_x = 0;
-    hdrpntr->start_y = 0;
-    hdrpntr->end_x = 10;
-    hdrpntr->end_y = 7;
-    hdrpntr->m0.clip_mode = PVR_USERCLIP_OUTSIDE;
+    hdrpntr->m0.clip_mode = PVR_USERCLIP_INSIDE;
     hdrpntr->m0.gouraud = PVR_SHADE_FLAT;
     pvr_dr_commit(hdrpntr);
 
@@ -320,6 +328,7 @@ void render_teapot(void) {
         spr_hdr.argb = (uint32_t)(final_light.x * 255) << 16 |
                        (uint32_t)(final_light.y * 255) << 8 |
                        (uint32_t)(final_light.z * 255) | 0xFF000000;
+        // spr_hdr.m0.clip_mode = PVR_USERCLIP_INSIDE;
 
         spr_hdr_pntr = (pvr_sprite_hdr_t*)pvr_dr_target(dr_state);
         *spr_hdr_pntr = spr_hdr;
