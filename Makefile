@@ -1,6 +1,6 @@
 TARGETNAME = sh4zamsprites
 BUILDDIR=build
-OBJS := $(shell find . -name '*.c' -not -path "./.git/*" |sed -e 's,\.\(.*\).c,$(BUILDDIR)\1.o,g')
+OBJS := $(shell find . -name '*.c' -not -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.\(.*\).c,$(BUILDDIR)\1.o,g')
 
 KOS_CSTD := -std=gnu23
 CC=kos-cc
@@ -47,15 +47,12 @@ ifdef DCPROF
 	DEFINES += -DDCPROF
 endif
 
-
-
 INCLUDES= -I$(KOS_BASE)/include \
 		-I$(KOS_BASE)/kernel/arch/dreamcast/include \
 		-I$(KOS_BASE)/addons/include \
 		-I$(KOS_BASE)/../kos-ports/include \
 		-I$(KOS_BASE)/utils \
 		-I$(shell pwd)/include \
-
 
 CFLAGS+=\
 		$(KOS_CSTD) \
@@ -73,14 +70,23 @@ CFLAGS+=\
 		-matomic-model=soft-imask \
 		-ffunction-sections -fdata-sections -ftls-model=local-exec \
 		-m4-single-only \
+		-fms-extensions \
 		$(LDLIBS) \
 		${DEFINES} \
 
 
-all: ${TARGETNAME}.elf
+SOURCES := $(shell find . -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.*/code/\(.*\).c,\1.c,g')
+$(info $$SOURCES is [${SOURCES}])
 
-${TARGETNAME}.elf: $(OBJS)
-	$(CC) $(CFLAGS)  $(OBJS) -o $@ 
+ELFS := $(SOURCES:.c=.elf)
+CDIS := $(SOURCES:.c=.cdi)
+
+$(info $$'ELFS' is [${ELFS}])
+
+elfs: ${ELFS}
+
+$(ELFS): %.elf: code/%.c $(OBJS)
+	$(CC) $(CFLAGS) $< $(OBJS) -o $@
 
 include $(KOS_BASE)/Makefile.rules
 
@@ -113,14 +119,11 @@ $(TEXDIR_ARGB1555_VQ_TW):
 $(TEXDIR_ARGB1555_VQ_TW)/%.dt: assets/textures/argb1555_vq_tw/%.png $(TEXDIR_ARGB1555_VQ_TW)
 	pvrtex -f ARGB1555 -c -i $< -o $@
 
-cdi: ${TARGETNAME}.elf
-	mkdcdisc -n ${TARGETNAME} -e $<  -N -o ${TARGETNAME}.cdi -v 3 -m
+$(CDIS): %.cdi: %.elf
+	mkdcdisc -n $* -e $<  -N -o $*.cdi -v 3 -m
 
-run: ${TARGETNAME}.elf
-	$(KOS_LOADER) ${TARGETNAME}.elf
+cdis: ${CDIS}
 
-dist:
-	$(KOS_STRIP) ${TARGETNAME}.elf
 
 clean:
-	-rm -rf ${TARGETNAME}.elf ${TARGETNAME}.cdi $(OBJS)
+	-rm -rf $(ELFS) $(OBJS) *.cdi
