@@ -72,6 +72,7 @@ class Model():
         self.tex_coords:list[TexCoord2f] = []
         self.triangles:list[TriangleIndex] = []
         self.quads:list[QuadIndex] = []
+        self.triangle_fans:list[TriangleFan] = []
 
     def normal(self, face: typing.Union[TriangleIndex, QuadIndex]) -> Coordinate3f:
         v1 = self.vertices[face.v1.vertex_index]
@@ -154,11 +155,12 @@ class Model():
                     nxt_vert = [v for v in [tri.v1, tri.v2, tri.v3] if v.vertex_index == vi]
                     fan.add_vertex(nxt_vert[0])
                 output_fans.append(fan)
-                # remove these triangles from the model
+                # remove these triangles from the modelModel(vertices=3241, normals=3242, texcoords=1588, triangles=0, quads=3120)
                 for _, tri_idx in fanorder:
                     self.triangles[tri_idx] = None  # mark for removal
         # clean up triangles
         self.triangles = [tri for tri in self.triangles if tri is not None]
+        self.triangle_fans = output_fans
 
         return output_fans
             
@@ -213,9 +215,7 @@ class Model():
 model = Model().load_from_obj(pwd + "/teapot2.obj")
 # model.quads = []  # discard quads for STL export
 # model.triangles = []
-# model.write_to_stl(pwd + "/teapot.stl")
-# model.write_to_shzmdl(pwd + "/teapot.shzmdl")
+model.write_to_stl(pwd + "/teapot.stl")
+model.write_to_shzmdl(pwd + "/teapot.shzmdl")
 
 fans = model.fan_triangles()
-print(fans)
-print(model)
