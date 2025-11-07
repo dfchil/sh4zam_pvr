@@ -14,9 +14,9 @@
 
 #define SUPERSAMPLING 1  // Set to 1 to enable horizontal FSAA, 0 to disable
 #if SUPERSAMPLING == 1
-#define XSCALE 2.0f
+#define XSCALE 2
 #else
-#define XSCALE 1.0f
+#define XSCALE 1
 #endif
 
 #ifndef SHOWFRAMETIMES
@@ -27,7 +27,7 @@
 #include <sh4zamsprites/cube.h> /* Cube vertices and side strips layout */
 #include <sh4zamsprites/mat_inverse.h> /* matrix inversion functions */
 #include <sh4zamsprites/perspective.h> /* Perspective projection matrix functions */
-#include <sh4zamsprites/shzmdl.h>     /* sh4zam model loading and rendering */
+#include <sh4zamsprites/shz_mdl.h>     /* sh4zam model loading and rendering */
 
 #define DEFAULT_FOV 75.0f  // Field of view, adjust with dpad up/down
 #define ZOOM_SPEED 0.3f
@@ -38,7 +38,7 @@
 static float fovy = DEFAULT_FOV;
 
 static const alignas(32) uint8_t teapot_stl[] = {
-#embed "../assets/models/teapot_big.stl"
+#embed "../assets/models/teapot.stl"
     // #embed "../assets/models/Utah_teapot_(solid).stl"
     // #embed "../assets/models/teapot.shzmdl"
 };
@@ -101,18 +101,16 @@ static inline void draw_sprite_line(shz_vec4_t* from, shz_vec4_t* to,
 }
 
 typedef struct __attribute__((packed)) {
-    struct shzmdl_tri_face_t;
+    struct shz_mdl_tri_face_t;
     uint16_t attrbytecount;
 } stl_poly_t;
 
 static uint16_t light_rotation = 13337;
 static uint16_t light_height = 4999;
 
-static inline shz_vec3_t perspective_n_swizzle(shz_vec4_t v) {
-    const float inv_w = shz_invf_fsrra(v.x);
-    return shz_vec3_init(v.y * inv_w, v.z * inv_w, inv_w);
-    // const float inv_w = shz_invf_fsrra(v.w);
-    // return shz_vec3_init(v.x * inv_w, v.y * inv_w, inv_w);
+static inline shz_vec3_t perspective(shz_vec4_t v) {
+    const float inv_w = shz_invf_fsrra(v.w);
+    return shz_vec3_init(v.x * inv_w, v.y * inv_w, inv_w);
 }
 
 void render_teapot(void) {
@@ -129,7 +127,6 @@ void render_teapot(void) {
 
     shz_xmtrx_translate(cube_state.pos.x, cube_state.pos.y - 10.0f,
                         cube_state.pos.z - 10.0f);
-    shz_xmtrx_apply_scale(2.0f, 2.0f, 2.0f);
     shz_xmtrx_apply_rotation_x(cube_state.rot.x + SHZ_F_PI * 0.75f - 0.1f);
     shz_xmtrx_apply_rotation_y(cube_state.rot.y + SHZ_F_PI * 0.25f);
 
@@ -140,7 +137,6 @@ void render_teapot(void) {
     shz_mat4x4_transpose(&inverse_transpose, &inverse_transpose);
 
     shz_xmtrx_init_identity();
-    shz_xmtrx_apply_permutation_wxyz();
     shz_xmtrx_apply_screen(screen_width, screen_height);
     shz_xmtrx_apply_perspective(fov, aspect, near_z);
     shz_xmtrx_apply_4x4(&model_view);
@@ -166,14 +162,10 @@ void render_teapot(void) {
                       0.5f + (xy_rotation.sin + height_variantion.sin) * 0.25f,
                       0.5f + (height_variantion.cos + xy_rotation.sin) * 0.25f);
 
-    // light_color = shz_vec3_init(1.0f, 1.0f, 1.0f);
-
     alignas(32) shz_vec3_t light_pos = {
         .x = xy_rotation.cos * light_radius,
         .y = xy_rotation.sin * light_radius,
         .z = -4.0f + light_radius + height_variantion.sin * light_radius};
-
-    // light_pos.z = light_radius * .35f;
 
 #define LIGHT_CUBE_SIZE 0.33f
 
@@ -187,11 +179,11 @@ void render_teapot(void) {
     };
     for (int i = 0; i < 5; i++) {
         light_quad[i].xyz =
-            perspective_n_swizzle(shz_xmtrx_transform_vec4((shz_vec4_t){
+            perspective(shz_xmtrx_transform_vec4((shz_vec4_t){
                 .xyz = shz_vec3_add(light_quad[i].xyz, light_pos), .w = 1.0f}));
     }
     alignas(32) shz_vec4_t scene_center = (shz_vec4_t){
-        .xyz = perspective_n_swizzle(shz_xmtrx_transform_vec4(
+        .xyz = perspective(shz_xmtrx_transform_vec4(
             (shz_vec4_t){.x = 0.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f})),
         .w = 1.0f};
 
@@ -220,8 +212,8 @@ void render_teapot(void) {
     pvr_dr_commit(light);
     light = (pvr_sprite_col_t*)pvr_dr_target(dr_state);
     pvr_sprite_col_t* light2ndhalf = (pvr_sprite_col_t*)((int)light - 32);
-    light2ndhalf->cy = light_quad[3].y;
-    light2ndhalf->cz = light_quad[3].z;
+    light2ndhalf->cy = light_quad[2].y;
+    light2ndhalf->cz = light_quad[2].z;
     light2ndhalf->dx = light_quad[3].x;
     light2ndhalf->dy = light_quad[3].y;
     pvr_dr_commit(light);
@@ -235,7 +227,6 @@ void render_teapot(void) {
 
     pvr_poly_hdr_t* hdrpntr = (pvr_poly_hdr_t*)pvr_dr_target(dr_state);
     pvr_poly_compile(hdrpntr, &cxt);
-    hdrpntr->m0.gouraud = PVR_SHADE_FLAT;
     pvr_dr_commit(hdrpntr);
 
     shz_vec3_t spec_light_pos = shz_mat4x4_trans_vec3(&model_view, light_pos);
@@ -278,35 +269,39 @@ void render_teapot(void) {
                                             light_intensity * light_color.z}});
         final_light = shz_vec3_clamp(final_light, 0.0f, 1.0f);
         stl_poly_t* poly = &polys[p];
-        alignas(32) shz_vec3_t v1 = perspective_n_swizzle(
+        alignas(32) shz_vec3_t v1 = perspective(
             shz_xmtrx_transform_vec4((shz_vec4_t){.xyz = poly->v1, .w = 1.0f}));
 
-        alignas(32) shz_vec3_t v2 = perspective_n_swizzle(
+        alignas(32) shz_vec3_t v2 = perspective(
             shz_xmtrx_transform_vec4((shz_vec4_t){.xyz = poly->v2, .w = 1.0f}));
 
-        alignas(32) shz_vec3_t v3 = perspective_n_swizzle(
+        alignas(32) shz_vec3_t v3 = perspective(
             shz_xmtrx_transform_vec4((shz_vec4_t){.xyz = poly->v3, .w = 1.0f}));
+
+        const uint32_t vertex_color = ((uint32_t)(final_light.x * 255.0f) << 16) |
+                    ((uint32_t)(final_light.y * 255.0f) << 8) |
+                    ((uint32_t)(final_light.z * 255.0f)) | 0xFF000000;
 
         pvr_vertex_t* tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
         tri->flags = PVR_CMD_VERTEX;
         tri->x = v1.x;
         tri->y = v1.y;
         tri->z = v1.z;
+        tri->argb = vertex_color;
         pvr_dr_commit(tri);
         tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
         tri->flags = PVR_CMD_VERTEX;
         tri->x = v2.x;
         tri->y = v2.y;
         tri->z = v2.z;
+        tri->argb = vertex_color;
+
         pvr_dr_commit(tri);
         tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
         tri->flags = PVR_CMD_VERTEX_EOL;
         tri->x = v3.x;
         tri->y = v3.y;
         tri->z = v3.z;
-        tri->argb = ((uint32_t)(final_light.x * 255.0f) << 16) |
-                    ((uint32_t)(final_light.y * 255.0f) << 8) |
-                    ((uint32_t)(final_light.z * 255.0f)) | 0xFF000000;
         pvr_dr_commit(tri);
     }
     pvr_dr_finish();

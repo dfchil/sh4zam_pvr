@@ -27,7 +27,7 @@
 #include <sh4zamsprites/cube.h> /* Cube vertices and side strips layout */
 #include <sh4zamsprites/mat_inverse.h> /* matrix inversion functions */
 #include <sh4zamsprites/perspective.h> /* Perspective projection matrix functions */
-#include <sh4zamsprites/shzmdl.h>     /* sh4zam model loading and rendering */
+#include <sh4zamsprites/shz_mdl.h>     /* sh4zam model loading and rendering */
 
 #define DEFAULT_FOV 75.0f  // Field of view, adjust with dpad up/down
 #define ZOOM_SPEED 0.3f
@@ -79,7 +79,7 @@ typedef struct __attribute__((packed)) {
 static uint16_t light_rotation = 13337;
 static uint16_t light_height = 4999;
 
-static inline shz_vec3_t perspective_n_swizzle(shz_vec4_t v) {
+static inline shz_vec3_t perspective(shz_vec4_t v) {
     const float inv_w = shz_invf_fsrra(v.x);
     return shz_vec3_init(v.y * inv_w, v.z * inv_w, inv_w);
 }
@@ -178,11 +178,11 @@ void render_teapot(void) {
     };
     for (int i = 0; i < 5; i++) {
         light_quad[i].xyz =
-            perspective_n_swizzle(shz_xmtrx_transform_vec4((shz_vec4_t){
+            perspective(shz_xmtrx_transform_vec4((shz_vec4_t){
                 .xyz = shz_vec3_add(light_quad[i].xyz, light_pos), .w = 1.0f}));
     }
     alignas(32) shz_vec4_t scene_center = (shz_vec4_t){
-        .xyz = perspective_n_swizzle(shz_xmtrx_transform_vec4(
+        .xyz = perspective(shz_xmtrx_transform_vec4(
             (shz_vec4_t){.x = 0.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f})),
         .w = 1.0f};
 
@@ -259,15 +259,15 @@ void render_teapot(void) {
 
 
         alignas(32) shz_vec3_t v1 =
-            perspective_n_swizzle(shz_xmtrx_transform_vec4(
+            perspective(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = triface->v1, .w = 1.0f}));
 
         alignas(32) shz_vec3_t v2 =
-            perspective_n_swizzle(shz_xmtrx_transform_vec4(
+            perspective(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = triface->v2, .w = 1.0f}));
 
         alignas(32) shz_vec3_t v3 =
-            perspective_n_swizzle(shz_xmtrx_transform_vec4(
+            perspective(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = triface->v3, .w = 1.0f}));
 
         pvr_vertex_t* tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
@@ -312,16 +312,16 @@ void render_teapot(void) {
         final_light = shz_vec3_clamp(final_light, 0.0f, 1.0f);
 
         alignas(32) shz_vec3_t v1 =
-            perspective_n_swizzle(shz_xmtrx_transform_vec4(
+            perspective(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = quadface->v1, .w = 1.0f}));
         alignas(32) shz_vec3_t v2 =
-            perspective_n_swizzle(shz_xmtrx_transform_vec4(
+            perspective(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = quadface->v2, .w = 1.0f}));
         alignas(32) shz_vec3_t v4 =
-            perspective_n_swizzle(shz_xmtrx_transform_vec4(
+            perspective(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = quadface->v3, .w = 1.0f}));
         alignas(32) shz_vec3_t v3 =
-            perspective_n_swizzle(shz_xmtrx_transform_vec4(
+            perspective(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = quadface->v4, .w = 1.0f}));
 
         pvr_vertex_t* qface = (pvr_vertex_t*)pvr_dr_target(dr_state);

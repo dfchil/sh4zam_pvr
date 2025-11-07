@@ -64,6 +64,9 @@ class TriangleFan ():
 
     def add_vertex(self, vertex:VertexIndex):
         self.vertices.append(vertex)
+    
+    def __str__(self) -> str:
+        return "".join([f"{ v.vertex_index}->"  for v in self.vertices ])
 
 class Model():
     def __init__(self):
@@ -116,7 +119,13 @@ class Model():
         return self
     
     def __str__(self) -> str:
-        return f"Model(vertices={len(self.vertices)}, normals={len(self.vertex_normals)}, texcoords={len(self.tex_coords)}, triangles={len(self.triangles)}, quads={len(self.quads)})"
+        return f"""Model(
+        vertices={len(self.vertices)}, 
+        normals={len(self.vertex_normals)}, 
+        texcoords={len(self.tex_coords)}, 
+        triangles={len(self.triangles)}, 
+        quads={len(self.quads)}, 
+        fans={[len(f.vertices) for f in self.triangle_fans]})"""
 
     def fan_triangles(self):
         potential_fans:dict[int, list[int]] = {}
@@ -155,9 +164,12 @@ class Model():
                     nxt_vert = [v for v in [tri.v1, tri.v2, tri.v3] if v.vertex_index == vi]
                     fan.add_vertex(nxt_vert[0])
                 output_fans.append(fan)
+                print("  Fan:", fan)
+
                 # remove these triangles from the modelModel(vertices=3241, normals=3242, texcoords=1588, triangles=0, quads=3120)
                 for _, tri_idx in fanorder:
                     self.triangles[tri_idx] = None  # mark for removal
+
         # clean up triangles
         self.triangles = [tri for tri in self.triangles if tri is not None]
         self.triangle_fans = output_fans
@@ -168,7 +180,7 @@ class Model():
     def write_to_stl(self, filepath:str):
         with open(filepath, "wb") as f:
             f.seek(80)
-            f.write(struct.pack("<I", len(self.triangles) + len(self.quads) * 2))
+            f.write(struct.pack("<I", len(self.triangles) + len(self.quads) * 2 + sum(len(fan.vertices) - 1 for fan in self.triangle_fans)))
             for tri in self.triangles:
                 normal = self.normal(tri)
                 f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
@@ -176,6 +188,23 @@ class Model():
                     vertex = self.vertices[vi.vertex_index]
                     f.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
                 f.write(struct.pack("<H", 0))
+            for fan in self.triangle_fans:
+                center_v = self.vertices[fan.center.vertex_index]
+                cur_v:typing.Optional[VertexIndex] = None
+                for next_v in fan.vertices:
+                    if cur_v is not None:
+                        normal = self.normal(TriangleIndex(fan.center, cur_v, next_v))
+                        f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
+                        f.write(struct.pack("<3f", center_v.x, center_v.y, center_v.z))
+                        cur_coord = self.vertices[cur_v.vertex_index]
+                        f.write(struct.pack("<3f", cur_coord.x, cur_coord.y, cur_coord.z))
+                        next_coord = self.vertices[next_v.vertex_index]
+                        f.write(struct.pack("<3f", next_coord.x, next_coord.y, next_coord.z))
+                        f.write(struct.pack("<H", 0))
+                        cur_v = next_v
+                    else:
+                        cur_v = next_v
+
             for quad in self.quads:
                 v1, v2, v3, v4 = quad.v1, quad.v2, quad.v3, quad.v4
                 normal = self.normal(quad)
@@ -190,32 +219,71 @@ class Model():
                     f.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
                 f.write(struct.pack("<H", 0))
 
-    def write_to_shzmdl(self, filepath:str):
+    def write_to_shz_mdl(self, filepath:str):
         with open(filepath, "wb") as f:
+
+            offset_triangles = 1 + (1 if len(self.triangles) > 0 else 0) # follows right after model header
+            offset_quads = offset_triangles + ((len(self.triangles) * 48) >> 5) + (1 if len(self.triangles) * 48 % 32 > 0 else 0)
+            offset_fans = offset_quads + 1 + ((len(self.quads) * 64) >> 5)
+
+            fan_verts = 0
+            for fan in self.triangle_fans:
+                f_verts = 32 + len(fan.vertices) * 3 * 2 * 4  # 32byte fan header + n * (vertex + normal) * 4bytes pr float
+                if f_verts % 32 != 0:
+                    f_verts += 32
+                fan_verts += f_verts >> 5
+            offset_strips = offset_fans + 1 + fan_verts # 32 byte fans header + fan data
+
+            f.write(struct.pack("<H", offset_triangles))
+            f.write(struct.pack("<H", offset_quads))
+            f.write(struct.pack("<H", offset_fans))
+            f.write(struct.pack("<H", offset_strips))
+
             f.write(struct.pack("<H", len(self.triangles)))
             f.write(struct.pack("<H", len(self.quads)))
-            f.write(struct.pack("<B", 3))  # type: triangles and quads
-            f.write(b'\0' * 27)  # padding to 32 bytes
+            f.write(struct.pack("<B", 4))  # type: face normals no textures
+
+            f.seek(offset_triangles << 5)
             for tri in self.triangles:
                 normal = self.normal(tri)
                 f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
                 for vi in [tri.v1, tri.v2, tri.v3]:
-                    vertex = self.vertices[vi.vertex_index]
-                    f.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
+                    next_v = self.vertices[vi.vertex_index]
+                    f.write(struct.pack("<3f", next_v.x, next_v.y, next_v.z))
+            f.seek(offset_quads << 5)
             for quad in self.quads:
                 v1, v2, v3, v4 = tuple(v for v in [quad.v1, quad.v2, quad.v3, quad.v4])
                 normal = self.normal(quad)
                 f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
                 for vi in [v1, v2, v3, v4]:
-                    vertex = self.vertices[vi.vertex_index]
-                    f.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
+                    next_v = self.vertices[vi.vertex_index]
+                    f.write(struct.pack("<3f", next_v.x, next_v.y, next_v.z))
+            f.seek(offset_fans << 5)
+            for fan in self.triangle_fans:
+                c_v = self.vertices[fan.center.vertex_index]
+                f.write(struct.pack("<3f", c_v.x, c_v.y, c_v.z))
 
+                cur_v:typing.Optional[VertexIndex] = None
+                for next_v in fan.vertices:
+                    if cur_v is not None:
+                        normal = self.normal(TriangleIndex(fan.center, cur_v, next_v))
+
+                        cur_coord = self.vertices[cur_v.vertex_index]
+                        f.write(struct.pack("<3f", cur_coord.x, cur_coord.y, cur_coord.z))
+                        f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
+                        cur_v = next_v
+                    else:
+                        cur_v = next_v
+
+                cur_coord = self.vertices[cur_v.vertex_index]
+                f.write(struct.pack("<3f", cur_coord.x, cur_coord.y, cur_coord.z))
+                f.write(struct.pack("<3f", 0.0, 0.0, 0.0)) # dummy normal for last vertex
 
 # source https://graphics.cs.utah.edu/courses/cs6620/fall2013/?prj=5
 model = Model().load_from_obj(pwd + "/teapot2.obj")
 # model.quads = []  # discard quads for STL export
 # model.triangles = []
+model.fan_triangles()
 model.write_to_stl(pwd + "/teapot.stl")
-model.write_to_shzmdl(pwd + "/teapot.shzmdl")
-
-fans = model.fan_triangles()
+model.write_to_shz_mdl(pwd + "/teapot.shzmdl")
+print(model)
