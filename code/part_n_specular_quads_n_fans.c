@@ -226,10 +226,10 @@ void render_teapot(void) {
     shz_mdl_quad_face_t* quads =
         (shz_mdl_quad_face_t*)((uint8_t*)tris + shzmdl_hdr->num.tri_faces *
                                                     sizeof(shz_mdl_tri_face_t));
-    shz_mdl_fan_face_normal_t* first_fan =
-        (shz_mdl_fan_face_normal_t*)((uint8_t*)quads +
-                         shzmdl_hdr->num.quad_faces *
-                             sizeof(shz_mdl_quad_face_t));
+    // shz_mdl_fan_face_t* first_fan =
+    //     (shz_mdl_fan_face_normal_t*)((uint8_t*)quads +
+    //                      shzmdl_hdr->num.quad_faces *
+    //                          sizeof(shz_mdl_quad_face_t));
 
     pvr_poly_cxt_t cxt;
     pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
@@ -257,12 +257,12 @@ void render_teapot(void) {
     shz_vec3_t spec_light_pos = shz_mat4x4_trans_vec3(&model_view, light_pos);
     shz_vec3_t spec_view_pos = shz_mat4x4_trans_vec3(&model_view, eye);
 
-    for (uint32_t p = 0; p < shzmdl_hdr->num.tri_fans; p++) {
+    for (uint32_t p = 0; p < 0; p++) {
 
-        shz_mdl_fan_face_normal_t* fan =
-            (shz_mdl_fan_face_normal_t*)((uint8_t*)quads +
-                            shzmdl_hdr->num.quad_faces *
-                                sizeof(shz_mdl_quad_face_t));
+        // shz_mdl_fan_face_normal_t* fan =
+        //     (shz_mdl_fan_face_normal_t*)((uint8_t*)quads +
+        //                     shzmdl_hdr->num.quad_faces *
+        //                         sizeof(shz_mdl_quad_face_t));
 
         // shz_mdl_tri_face_t* triface = tris + p;
 

@@ -251,6 +251,7 @@ class Model():
                     next_v = self.vertices[vi.vertex_index]
                     f.write(struct.pack("<3f", next_v.x, next_v.y, next_v.z))
             f.seek(offset_quads << 5)
+
             for quad in self.quads:
                 v1, v2, v3, v4 = tuple(v for v in [quad.v1, quad.v2, quad.v3, quad.v4])
                 normal = self.normal(quad)
@@ -258,10 +259,22 @@ class Model():
                 for vi in [v1, v2, v3, v4]:
                     next_v = self.vertices[vi.vertex_index]
                     f.write(struct.pack("<3f", next_v.x, next_v.y, next_v.z))
+
+            next_fan = offset_fans
             f.seek(offset_fans << 5)
-            for fan in self.triangle_fans:
+            num_fans = len(self.triangle_fans)
+            for fi in range(num_fans):
+                fan = self.triangle_fans[fi]
+                f.write(struct.pack("<I", len(fan.vertices))) # num vertices in fan
                 c_v = self.vertices[fan.center.vertex_index]
-                f.write(struct.pack("<3f", c_v.x, c_v.y, c_v.z))
+                f.write(struct.pack("<3f", c_v.x, c_v.y, c_v.z)) # fan center vert
+                f.write(struct.pack("<3f", 0.0, 0.0, 0.0)) # dummy normal for center vert
+
+                if (fi + 1) < num_fans:
+                  next_fan += (32 + len(fan.vertices) * 3 * 2 * 4) >> 5 # 32byte fan header + n * (vertex + normal) * 4bytes pr float
+                  f.write(struct.pack("<I", next_fan))
+                else:
+                  f.write(struct.pack("<I", 0))  # null for last fan
 
                 cur_v:typing.Optional[VertexIndex] = None
                 for next_v in fan.vertices:

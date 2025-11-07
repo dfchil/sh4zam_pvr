@@ -35,15 +35,9 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
   uint32_t num_tris;
   shz_vec3_t center;
+  shz_vec3_t center_normal;
   void* next_fan;
-  char _padding[12];
-} shz_mdl_fan_face_normal_t;
-
-typedef struct __attribute__((packed)) {
-  uint32_t num_tris;
-  shz_mdl_vert_normal_t center;
-  void* next_fan;
-} shz_mdl_fan_vert_normal_t;
+} shz_mdl_fan_normal_t;
 
 typedef struct __attribute__((packed)) {
   struct {
