@@ -76,6 +76,7 @@ class Model():
         self.triangles:list[TriangleIndex] = []
         self.quads:list[QuadIndex] = []
         self.triangle_fans:list[TriangleFan] = []
+        self.vertex_strips:list[list[VertexIndex]] = []
 
     def normal(self, face: typing.Union[TriangleIndex, QuadIndex]) -> Coordinate3f:
         v1 = self.vertices[face.v1.vertex_index]
@@ -221,7 +222,6 @@ class Model():
 
     def write_to_shz_mdl(self, filepath:str):
         with open(filepath, "wb") as f:
-
             offset_triangles = 1 + (1 if len(self.triangles) > 0 else 0) # follows right after model header
             offset_quads = offset_triangles + ((len(self.triangles) * 48) >> 5) + (1 if len(self.triangles) * 48 % 32 > 0 else 0)
             offset_fans = offset_quads + 1 + ((len(self.quads) * 64) >> 5)
@@ -233,6 +233,19 @@ class Model():
                     f_verts += 32
                 fan_verts += f_verts >> 5
             offset_strips = offset_fans + 1 + fan_verts # 32 byte fans header + fan data
+            
+            if len(self.triangles) == 0:
+              offset_quads = offset_triangles
+              offset_triangles = 0
+            if len(self.quads) == 0:
+              offset_fans = offset_quads
+              offset_quads = 0
+            if len(self.triangle_fans) == 0:
+              offset_strips = offset_fans
+              offset_fans = 0
+            if len(self.vertex_strips) == 0:
+              offset_strips = 0
+            
 
             f.write(struct.pack("<H", offset_triangles))
             f.write(struct.pack("<H", offset_quads))
@@ -250,8 +263,8 @@ class Model():
                 for vi in [tri.v1, tri.v2, tri.v3]:
                     next_v = self.vertices[vi.vertex_index]
                     f.write(struct.pack("<3f", next_v.x, next_v.y, next_v.z))
-            f.seek(offset_quads << 5)
 
+            f.seek(offset_quads << 5)
             for quad in self.quads:
                 v1, v2, v3, v4 = tuple(v for v in [quad.v1, quad.v2, quad.v3, quad.v4])
                 normal = self.normal(quad)

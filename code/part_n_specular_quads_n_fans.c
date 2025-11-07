@@ -223,9 +223,8 @@ void render_teapot(void) {
 
     shz_mdl_tri_face_t* tris =
         (shz_mdl_tri_face_t*)(teapot_shzmdl + sizeof(shzmdl_hdr_t));
-    shz_mdl_quad_face_t* quads =
-        (shz_mdl_quad_face_t*)((uint8_t*)tris + shzmdl_hdr->num.tri_faces *
-                                                    sizeof(shz_mdl_tri_face_t));
+    shz_mdl_quad_face_t* quads = 
+        (shz_mdl_quad_face_t*)((uint8_t*)teapot_shzmdl + shzmdl_hdr->offset.quad_faces * 32);
     // shz_mdl_fan_face_t* first_fan =
     //     (shz_mdl_fan_face_normal_t*)((uint8_t*)quads +
     //                      shzmdl_hdr->num.quad_faces *
