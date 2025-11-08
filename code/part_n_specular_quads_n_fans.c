@@ -256,6 +256,19 @@ void render_teapot(void) {
     shz_vec3_t spec_light_pos = shz_mat4x4_trans_vec3(&model_view, light_pos);
     shz_vec3_t spec_view_pos = shz_mat4x4_trans_vec3(&model_view, eye);
 
+    printf("shzmdl_hdr->num.tri_faces: %u\n", shzmdl_hdr->num.tri_faces);
+    printf("shzmdl_hdr->num.quad_faces: %u\n", shzmdl_hdr->num.quad_faces);
+    printf("shzmdl_hdr->offset.tri_faces: %u\n", shzmdl_hdr->offset.tri_faces);
+    printf("shzmdl_hdr->offset.quad_faces: %u\n", shzmdl_hdr->offset.quad_faces);
+    printf("shzmdl_hdr->offset.triangle_fans: %u\n", shzmdl_hdr->offset.tri_fans);
+    printf("shzmdl_hdr->offset.triangle_strips: %u\n", shzmdl_hdr->offset.tri_strips);
+    printf("\n");
+
+
+    shz_mdl_fan_start_t* first_fan = (shz_mdl_fan_start_t*)((void*)&teapot_shzmdl + (size_t)(shzmdl_hdr->offset.tri_fans << 5));
+    printf("first fan num_tris: %u\n", first_fan->num_tris);
+    printf("first fan center: %f, %f, %f\n", first_fan->center.x, first_fan->center.y, first_fan->center.z);
+
     for (uint32_t p = 0; p < 0; p++) {
 
         // shz_mdl_fan_face_normal_t* fan =
