@@ -247,13 +247,14 @@ class Model():
               offset_strips = 0
             
 
-            f.write(struct.pack("<H", offset_triangles))
-            f.write(struct.pack("<H", offset_quads))
-            f.write(struct.pack("<H", offset_fans))
-            f.write(struct.pack("<H", offset_strips))
+            f.write(struct.pack("<4B", 0, 1, 0, 0))  # early version
+            f.write(struct.pack("<I", offset_triangles))
+            f.write(struct.pack("<I", offset_quads))
+            f.write(struct.pack("<I", offset_fans))
+            f.write(struct.pack("<I", offset_strips))
 
-            f.write(struct.pack("<H", len(self.triangles)))
-            f.write(struct.pack("<H", len(self.quads)))
+            f.write(struct.pack("<I", len(self.triangles)))
+            f.write(struct.pack("<I", len(self.quads)))
             f.write(struct.pack("<B", 4))  # type: face normals no textures
 
             f.seek(offset_triangles << 5)
@@ -272,6 +273,7 @@ class Model():
                 for vi in [v1, v2, v3, v4]:
                     next_v = self.vertices[vi.vertex_index]
                     f.write(struct.pack("<3f", next_v.x, next_v.y, next_v.z))
+                f.write(struct.pack("<I", 0))  # padding to 64 bytes per quad
 
             next_fan = offset_fans
             f.seek(offset_fans << 5)

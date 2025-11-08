@@ -225,10 +225,6 @@ void render_teapot(void) {
         (shz_mdl_tri_face_t*)(teapot_shzmdl + sizeof(shzmdl_hdr_t));
     shz_mdl_quad_face_t* quads = 
         (shz_mdl_quad_face_t*)((uint8_t*)teapot_shzmdl + shzmdl_hdr->offset.quad_faces * 32);
-    // shz_mdl_fan_face_t* first_fan =
-    //     (shz_mdl_fan_face_normal_t*)((uint8_t*)quads +
-    //                      shzmdl_hdr->num.quad_faces *
-    //                          sizeof(shz_mdl_quad_face_t));
 
     pvr_poly_cxt_t cxt;
     pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
@@ -256,27 +252,23 @@ void render_teapot(void) {
     shz_vec3_t spec_light_pos = shz_mat4x4_trans_vec3(&model_view, light_pos);
     shz_vec3_t spec_view_pos = shz_mat4x4_trans_vec3(&model_view, eye);
 
-    printf("shzmdl_hdr->num.tri_faces: %u\n", shzmdl_hdr->num.tri_faces);
-    printf("shzmdl_hdr->num.quad_faces: %u\n", shzmdl_hdr->num.quad_faces);
-    printf("shzmdl_hdr->offset.tri_faces: %u\n", shzmdl_hdr->offset.tri_faces);
-    printf("shzmdl_hdr->offset.quad_faces: %u\n", shzmdl_hdr->offset.quad_faces);
-    printf("shzmdl_hdr->offset.triangle_fans: %u\n", shzmdl_hdr->offset.tri_fans);
-    printf("shzmdl_hdr->offset.triangle_strips: %u\n", shzmdl_hdr->offset.tri_strips);
-    printf("\n");
+    shz_mdl_fan_start_t* first_fan = (shz_mdl_fan_start_t*)((void*)&teapot_shzmdl + (size_t)(shzmdl_hdr->offset.fans << 5));
+    while (first_fan) {
+    //     for (uint32_t f = 0; f < first_fan->num_tris; f++) {
 
 
-    shz_mdl_fan_start_t* first_fan = (shz_mdl_fan_start_t*)((void*)&teapot_shzmdl + (size_t)(shzmdl_hdr->offset.tri_fans << 5));
-    printf("first fan num_tris: %u\n", first_fan->num_tris);
-    printf("first fan center: %f, %f, %f\n", first_fan->center.x, first_fan->center.y, first_fan->center.z);
+    //         /* ambient light */
+    //         shz_vec3_t final_light = (shz_vec3_t){.x = 0.1f, .y = 0.1f, .z = 0.1f};
 
-    for (uint32_t p = 0; p < 0; p++) {
+    //         /* diffuse and specular light */
+    //         float light_intensity = calc_light(
+    //             &(triface->v1), &fan_face[f].normal, &light_pos, &spec_light_pos,
+    //             &spec_view_pos, &model
+    // for (uint32_t p = 0; p < 0; p++) {
+      first_fan = (shz_mdl_fan_start_t*)first_fan->next_fan;
 
-        // shz_mdl_fan_face_normal_t* fan =
-        //     (shz_mdl_fan_face_normal_t*)((uint8_t*)quads +
-        //                     shzmdl_hdr->num.quad_faces *
-        //                         sizeof(shz_mdl_quad_face_t));
 
-        // shz_mdl_tri_face_t* triface = tris + p;
+
 
         // /* ambient light */
         // shz_vec3_t final_light = (shz_vec3_t){.x = 0.1f, .y = 0.1f, .z = 0.1f};

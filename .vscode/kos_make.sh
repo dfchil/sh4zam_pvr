@@ -7,5 +7,5 @@ TARGET=part_n_specular_quads_n_fans.elf
 source /opt/toolchains/dc/kos/environ.sh
 make clean
 # DCPROF=1 SINGLEDEMO=7 
-SHOWFRAMETIMES=1 DEBUG=1 OPTLEVEL=g  BASEPATH=/pc make $TARGET -j 10
+SHOWFRAMETIMES=1 DEBUG=1 OPTLEVEL=3  BASEPATH=/pc make $TARGET -j 10
 exit
