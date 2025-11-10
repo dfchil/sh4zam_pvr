@@ -188,7 +188,7 @@ void render_teapot(void) {
 
     pvr_sprite_cxt_t spr_cxt;
     pvr_sprite_cxt_col(&spr_cxt, PVR_LIST_OP_POLY);
-    spr_cxt.gen.culling = PVR_CULLING_NONE;
+    spr_cxt.gen.culling = CW;
     pvr_sprite_hdr_t spr_hdr, *spr_hdr_pntr;
     pvr_sprite_compile(&spr_hdr, &spr_cxt);
     spr_hdr.argb = (uint32_t)(light_color.x * 255) << 16 |
