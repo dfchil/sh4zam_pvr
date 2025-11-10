@@ -20,7 +20,7 @@ typedef struct __attribute__((packed)) shz_mdl_tri_face_t {
   shz_vec3_t v3;
 } shz_mdl_tri_face_t;
 
-typedef struct __attribute__((packed)) {
+typedef struct __attribute__((packed)) shz_mdl_quad_face_t {
   shz_vec3_t normal;
   shz_vec3_t v1;
   shz_vec3_t v2;
@@ -34,12 +34,12 @@ typedef struct __attribute__((packed)) {
   shz_vec3_t normal;
 } shz_mdl_vert_normal_t;
 
-typedef struct __attribute__((packed)) {
-  uint32_t num_tris;
+typedef struct __attribute__((packed)) shz_mdl_fan {
+  uint32_t num_verts;
   shz_vec3_t center;
   shz_vec3_t center_normal;
-  void* next_fan;
-} shz_mdl_fan_start_t;
+  uint32_t next_fan_offset;
+} shz_mdl_fan_t;
 
 typedef struct __attribute__((packed)) {
   struct {

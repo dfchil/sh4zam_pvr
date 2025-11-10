@@ -49,6 +49,12 @@ class TriangleIndex ():
         self.v1 = v1
         self.v2 = v2
         self.v3 = v3
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, TriangleIndex):
+            return False
+        return (self.v1 == value.v1 and
+                self.v2 == value.v2 and
+                self.v3 == value.v3)
 
 class QuadIndex ():
     def __init__(self, v1:VertexIndex, v2:VertexIndex, v3:VertexIndex, v4:VertexIndex):
@@ -156,10 +162,14 @@ class Model():
                         fanorder.append(nxt)
                     else:
                         break
+
+                if fanorder[0][1] == fanorder[-1][1]:
+                    fanorder.pop()  # remove duplicate last triangle
+
                 #todo: handle fans with gaps
-                first_tri = self.triangles[fanorder[0][1]]
-                center_verts = [v for v in [first_tri.v1, first_tri.v2, first_tri.v3] if v.vertex_index == fan_center]
-                fan = TriangleFan(center_verts[0])
+                first_tri:TriangleIndex = self.triangles[fanorder[0][1]]
+                center_vert:VertexIndex = [v for v in [first_tri.v1, first_tri.v2, first_tri.v3] if v.vertex_index == fan_center][0]
+                fan = TriangleFan(center_vert)
                 for vi, tri_idx in fanorder:
                     tri = self.triangles[tri_idx]
                     nxt_vert = [v for v in [tri.v1, tri.v2, tri.v3] if v.vertex_index == vi]
@@ -276,9 +286,9 @@ class Model():
                 f.write(struct.pack("<I", 0))  # padding to 64 bytes per quad
 
             next_fan = offset_fans
-            f.seek(offset_fans << 5)
             num_fans = len(self.triangle_fans)
             for fi in range(num_fans):
+                f.seek(next_fan << 5)
                 fan = self.triangle_fans[fi]
                 f.write(struct.pack("<I", len(fan.vertices))) # num vertices in fan
                 c_v = self.vertices[fan.center.vertex_index]
@@ -291,21 +301,14 @@ class Model():
                 else:
                   f.write(struct.pack("<I", 0))  # null for last fan
 
-                cur_v:typing.Optional[VertexIndex] = None
-                for next_v in fan.vertices:
-                    if cur_v is not None:
-                        normal = self.normal(TriangleIndex(fan.center, cur_v, next_v))
+                prev_v:VertexIndex = fan.vertices[-1]
+                for cur_v in fan.vertices:
+                    cur_coord = self.vertices[cur_v.vertex_index]
+                    f.write(struct.pack("<3f", cur_coord.x, cur_coord.y, cur_coord.z))
+                    normal = self.normal(TriangleIndex(fan.center, prev_v, cur_v))
+                    f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
+                    prev_v = cur_v
 
-                        cur_coord = self.vertices[cur_v.vertex_index]
-                        f.write(struct.pack("<3f", cur_coord.x, cur_coord.y, cur_coord.z))
-                        f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
-                        cur_v = next_v
-                    else:
-                        cur_v = next_v
-
-                cur_coord = self.vertices[cur_v.vertex_index]
-                f.write(struct.pack("<3f", cur_coord.x, cur_coord.y, cur_coord.z))
-                f.write(struct.pack("<3f", 0.0, 0.0, 0.0)) # dummy normal for last vertex
 
 # source https://graphics.cs.utah.edu/courses/cs6620/fall2013/?prj=5
 model = Model().load_from_obj(pwd + "/teapot2.obj")

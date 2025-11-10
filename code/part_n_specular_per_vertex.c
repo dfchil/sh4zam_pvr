@@ -188,7 +188,7 @@ void render_teapot(void) {
 
     pvr_sprite_cxt_t spr_cxt;
     pvr_sprite_cxt_col(&spr_cxt, PVR_LIST_OP_POLY);
-    spr_cxt.gen.culling = PVR_CULLING_NONE;
+    spr_cxt.gen.culling = CW;
     pvr_sprite_hdr_t spr_hdr, *spr_hdr_pntr;
     pvr_sprite_compile(&spr_hdr, &spr_cxt);
     spr_hdr.argb = (uint32_t)(light_color.x * 255) << 16 |
@@ -239,60 +239,6 @@ void render_teapot(void) {
 
     shz_vec3_t spec_light_pos = shz_mat4x4_trans_vec3(&model_view, light_pos);
     shz_vec3_t spec_view_pos = shz_mat4x4_trans_vec3(&model_view, eye);
-
-    for (uint32_t p = 0; p < shzmdl_hdr->num.tri_faces; p++) {
-        shzmdl_tri_face_t* triface = tris + p;
-
-        /* ambient light */
-        shz_vec3_t final_light = (shz_vec3_t){.x = 0.1f, .y = 0.1f, .z = 0.1f};
-
-        /* diffuse and specular light */
-        float light_intensity = calc_light(
-            &(triface->v1), &triface->normal, &light_pos, &spec_light_pos,
-            &spec_view_pos, &model_view, &inverse_transpose);
-
-        final_light = shz_vec3_add(
-            final_light, (shz_vec3_t){.e = {light_intensity * light_color.x,
-                                            light_intensity * light_color.y,
-                                            light_intensity * light_color.z}});
-        final_light = shz_vec3_clamp(final_light, 0.0f, 1.0f);
-
-
-        alignas(32) shz_vec3_t v1 =
-            perspective(shz_xmtrx_transform_vec4(
-                (shz_vec4_t){.xyz = triface->v1, .w = 1.0f}));
-
-        alignas(32) shz_vec3_t v2 =
-            perspective(shz_xmtrx_transform_vec4(
-                (shz_vec4_t){.xyz = triface->v2, .w = 1.0f}));
-
-        alignas(32) shz_vec3_t v3 =
-            perspective(shz_xmtrx_transform_vec4(
-                (shz_vec4_t){.xyz = triface->v3, .w = 1.0f}));
-
-        pvr_vertex_t* tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
-        tri->flags = PVR_CMD_VERTEX;
-        tri->x = v1.x;
-        tri->y = v1.y;
-        tri->z = v1.z;
-        pvr_dr_commit(tri);
-        tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
-        tri->flags = PVR_CMD_VERTEX;
-        tri->x = v2.x;
-        tri->y = v2.y;
-        tri->z = v2.z;
-        pvr_dr_commit(tri);
-        tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
-        tri->flags = PVR_CMD_VERTEX_EOL;
-        tri->x = v3.x;
-        tri->y = v3.y;
-        tri->z = v3.z;
-        tri->argb =  ((uint32_t)(final_light.x * 255.0f) << 16) |
-                                ((uint32_t)(final_light.y * 255.0f) << 8) |
-                                ((uint32_t)(final_light.z * 255.0f)) |
-                                0xFF000000;
-        pvr_dr_commit(tri);
-    }
 
     for (int q = 0; q < shzmdl_hdr->num.quad_faces; q++) {
         shzmdl_quad_face_t* quadface = &quads[q];
