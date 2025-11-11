@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-TARGET=part_n_specular_quads_n_fans.elf
+TARGET=part_6_specular_lighting.elf
 # TARGET=part_n+1_specular_triangle_faces_stl.elf
 
 #set the KOS environtment variables
