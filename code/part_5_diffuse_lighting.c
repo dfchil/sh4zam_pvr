@@ -25,7 +25,6 @@
 
 #include <sh4zam/shz_sh4zam.h>
 #include <sh4zamsprites/cube.h> /* Cube vertices and side strips layout */
-#include <sh4zamsprites/mat_inverse.h> /* matrix inversion functions */
 #include <sh4zamsprites/perspective.h> /* Perspective projection matrix functions */
 #include <sh4zamsprites/shz_mdl.h>     /* sh4zam model loading and rendering */
 
