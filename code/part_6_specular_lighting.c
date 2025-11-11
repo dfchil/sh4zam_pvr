@@ -160,9 +160,11 @@ void render_teapot(void) {
                       0.5f + (xy_rotation.sin + height_variantion.sin) * 0.25f,
                       0.5f + (height_variantion.cos + xy_rotation.sin) * 0.25f);
 
+    float high_attack_angle_x = SHZ_MAX(height_variantion.sin  * light_radius * 0.75f, 0.0f);
+    float high_attack_angle_y = SHZ_MAX(height_variantion.cos  * light_radius * 0.75f, 0.0f);
     alignas(32) shz_vec3_t light_pos = {
-        .x = xy_rotation.cos * light_radius - (height_variantion.sin  * light_radius * 0.9f),
-        .y = xy_rotation.sin * light_radius - (height_variantion.sin  * light_radius * 0.9f),
+        .x = xy_rotation.cos * light_radius - high_attack_angle_x,
+        .y = xy_rotation.sin * light_radius - high_attack_angle_y,
         .z = -4.0f + light_radius + height_variantion.sin * light_radius};
 
 #define LIGHT_CUBE_SIZE 0.33f
@@ -481,7 +483,7 @@ void render_teapot(void) {
         uint32_t color = (uint32_t)(final_light.x * 255) << 16 |
                          (uint32_t)(final_light.y * 255) << 8 |
                          (uint32_t)(final_light.z * 255) | 0xFF000000;        
-
+        
         alignas(32) shz_vec3_t v1 =
             perspective_n_swizzle(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = triface->v1, .w = 1.0f}));
@@ -491,6 +493,9 @@ void render_teapot(void) {
         alignas(32) shz_vec3_t v3 =
             perspective_n_swizzle(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = triface->v3, .w = 1.0f}));
+        // if (color != 0){
+        //     continue; 
+        // }
         pvr_vertex_t* v = (pvr_vertex_t*)pvr_dr_target(dr_state);
         v->flags = PVR_CMD_VERTEX;
         v->x = v1.x;
