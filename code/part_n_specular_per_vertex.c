@@ -72,7 +72,7 @@ static inline void draw_sprite_line(shz_vec4_t* from, shz_vec4_t* to,
 }
 
 typedef struct __attribute__((packed)) {
-    struct shzmdl_tri_face_t;
+    struct shz_mdl_tri_face_t;
     uint16_t attrbytecount;
 } stl_poly_t;
 
