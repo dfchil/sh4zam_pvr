@@ -161,9 +161,11 @@ void render_teapot(void) {
                       0.5f + (xy_rotation.sin + height_variantion.sin) * 0.25f,
                       0.5f + (height_variantion.cos + xy_rotation.sin) * 0.25f);
 
+    float high_attack_angle_x = SHZ_MAX(height_variantion.sin  * light_radius * 0.75f, 0.0f);
+    float high_attack_angle_y = SHZ_MAX(height_variantion.cos  * light_radius * 0.75f, 0.0f);
     alignas(32) shz_vec3_t light_pos = {
-        .x = xy_rotation.cos * light_radius - (height_variantion.sin  * light_radius * 0.9f),
-        .y = xy_rotation.sin * light_radius - (height_variantion.sin  * light_radius * 0.9f),
+        .x = xy_rotation.cos * light_radius - high_attack_angle_x,
+        .y = xy_rotation.sin * light_radius - high_attack_angle_y,
         .z = -4.0f + light_radius + height_variantion.sin * light_radius};
 
 #define LIGHT_CUBE_SIZE 0.33f
@@ -222,25 +224,16 @@ void render_teapot(void) {
     shzmdl_hdr_t* shzmdl_hdr = (shzmdl_hdr_t*)(teapot_shzmdl);
 
     shz_mdl_tri_face_t* tris =
-<<<<<<< HEAD
         (shz_mdl_tri_face_t*)((uint8_t*)teapot_shzmdl +
                                (shzmdl_hdr->offset.tri_faces << 5));
-=======
-        (shz_mdl_tri_face_t*)(teapot_shzmdl + sizeof(shzmdl_hdr_t));
->>>>>>> 70f07d4e4fd7ccc733665a7d42641bc0ebca83de
     shz_mdl_quad_face_t* quads =
         (shz_mdl_quad_face_t*)((uint8_t*)teapot_shzmdl +
                                (shzmdl_hdr->offset.quad_faces << 5));
 
     pvr_poly_cxt_t cxt;
     pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
-<<<<<<< HEAD
     cxt.gen.shading = PVR_SHADE_FLAT;
     cxt.gen.culling = PVR_CULLING_NONE;
-=======
-    cxt.gen.culling = PVR_CULLING_CW;
-    // cxt.gen.specular = PVR_SPECULAR_ENABLE;
->>>>>>> 70f07d4e4fd7ccc733665a7d42641bc0ebca83de
 
     pvr_poly_hdr_t* hdrpntr = (pvr_poly_hdr_t*)pvr_dr_target(dr_state);
     // hdrpntr->cmd = PVR_CMD_USERCLIP;
@@ -267,7 +260,6 @@ void render_teapot(void) {
     while (fan_offset) {
         shz_mdl_fan_t* cur_fan =
             (shz_mdl_fan_t*)((uint8_t*)&teapot_shzmdl + fan_offset);
-<<<<<<< HEAD
 
         shz_mdl_vert_normal_t* fan_blades =
             (shz_mdl_vert_normal_t*)((uint8_t*)cur_fan + sizeof(shz_mdl_fan_t));
@@ -277,18 +269,7 @@ void render_teapot(void) {
         shz_vec3_t prev_left = perspective_n_swizzle(shz_xmtrx_transform_vec4(
             (shz_vec4_t){.xyz = (fan_blades + cur_fan->num_verts - 1)->vert,
                          .w = 1.0f}));
-=======
->>>>>>> 70f07d4e4fd7ccc733665a7d42641bc0ebca83de
 
-        shz_mdl_vert_normal_t* fan_blades =
-            (shz_mdl_vert_normal_t*)((uint8_t*)cur_fan + sizeof(shz_mdl_fan_t));
-        
-        shz_vec3_t fan_center = perspective_n_swizzle(shz_xmtrx_transform_vec4(
-            (shz_vec4_t){.xyz = cur_fan->center, .w = 1.0f}));
-        shz_vec3_t prev_left = perspective_n_swizzle(shz_xmtrx_transform_vec4(
-            (shz_vec4_t){.xyz = (fan_blades+ cur_fan->num_verts - 1)->vert, .w = 1.0f}));
-
-<<<<<<< HEAD
 // #define FANSTRIPS
 // #define FAN2TRIS
 #define FAN2QUADS
@@ -401,34 +382,6 @@ void render_teapot(void) {
                     (shz_vec4_t){.xyz = (fan_blades + f)->vert, .w = 1.0f}));
 
             tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
-=======
-        for (uint32_t f = 0; f < cur_fan->num_verts; f++) {
-            /* ambient light */
-            shz_vec3_t final_light =
-                (shz_vec3_t){.x = 0.1f, .y = 0.1f, .z = 0.1f};
-
-            /* diffuse and specular light */
-            float light_intensity =
-                calc_light(&(fan_blades + f)->vert, &(fan_blades + f)->normal,
-                           &light_pos, &spec_light_pos, &spec_view_pos,
-                           &model_view, &inverse_transpose);
-
-            final_light = shz_vec3_add(
-                final_light,
-                (shz_vec3_t){.e = {light_intensity * light_color.x,
-                                   light_intensity * light_color.y,
-                                   light_intensity * light_color.z}});
-            final_light = shz_vec3_clamp(final_light, 0.0f, 1.0f);
-            uint32_t argb = (uint32_t)(final_light.x * 255) << 16 |
-                            (uint32_t)(final_light.y * 255) << 8 |
-                            (uint32_t)(final_light.z * 255) | 0xFF000000;
-
-            shz_vec3_t cur_right =
-                perspective_n_swizzle(shz_xmtrx_transform_vec4(
-                    (shz_vec4_t){.xyz = (fan_blades + f)->vert, .w = 1.0f}));
-
-            pvr_vertex_t* tri = (pvr_vertex_t*)pvr_dr_target(dr_state);
->>>>>>> 70f07d4e4fd7ccc733665a7d42641bc0ebca83de
             tri->flags = PVR_CMD_VERTEX;
             tri->x = fan_center.x;
             tri->y = fan_center.y;
@@ -451,7 +404,6 @@ void render_teapot(void) {
             pvr_dr_commit(tri);
             prev_left = cur_right;
         }
-<<<<<<< HEAD
 #endif
 
 #ifdef FAN2QUADS
@@ -532,7 +484,7 @@ void render_teapot(void) {
         uint32_t color = (uint32_t)(final_light.x * 255) << 16 |
                          (uint32_t)(final_light.y * 255) << 8 |
                          (uint32_t)(final_light.z * 255) | 0xFF000000;        
-
+        
         alignas(32) shz_vec3_t v1 =
             perspective_n_swizzle(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = triface->v1, .w = 1.0f}));
@@ -542,6 +494,9 @@ void render_teapot(void) {
         alignas(32) shz_vec3_t v3 =
             perspective_n_swizzle(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = triface->v3, .w = 1.0f}));
+        // if (color != 0){
+        //     continue; 
+        // }
         pvr_vertex_t* v = (pvr_vertex_t*)pvr_dr_target(dr_state);
         v->flags = PVR_CMD_VERTEX;
         v->x = v1.x;
@@ -561,9 +516,6 @@ void render_teapot(void) {
         v->z = v3.z;
         v->argb = color;
         pvr_dr_commit(v);
-=======
-        fan_offset = cur_fan->next_fan_offset << 5;
->>>>>>> 70f07d4e4fd7ccc733665a7d42641bc0ebca83de
     }
 
     for (int q = 0; q < shzmdl_hdr->num.quad_faces; q++) {

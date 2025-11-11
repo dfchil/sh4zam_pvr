@@ -86,7 +86,6 @@ class TriangleIndex ():
         self.v0 = v0
         self.v1 = v1
         self.v2 = v2
-<<<<<<< HEAD
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, TriangleIndex):
@@ -104,15 +103,6 @@ class TriangleIndex ():
         stlfile.write(struct.pack("<H", 0))
 
         
-=======
-        self.v3 = v3
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, TriangleIndex):
-            return False
-        return (self.v1 == value.v1 and
-                self.v2 == value.v2 and
-                self.v3 == value.v3)
->>>>>>> 70f07d4e4fd7ccc733665a7d42641bc0ebca83de
 
 class QuadIndex ():
     def __init__(self, v0:typing.Optional[VertexIndex], v1:typing.Optional[VertexIndex], v2:typing.Optional[VertexIndex], v3:typing.Optional[VertexIndex]):
@@ -233,11 +223,7 @@ class Model():
 
                 #todo: handle fans with gaps
                 first_tri:TriangleIndex = self.triangles[fanorder[0][1]]
-<<<<<<< HEAD
                 center_vert:VertexIndex = [v for v in [first_tri.v0, first_tri.v1, first_tri.v2] if v.vertex_index == fan_center][0]
-=======
-                center_vert:VertexIndex = [v for v in [first_tri.v1, first_tri.v2, first_tri.v3] if v.vertex_index == fan_center][0]
->>>>>>> 70f07d4e4fd7ccc733665a7d42641bc0ebca83de
                 fan = TriangleFan(center_vert)
                 for vi, tri_idx in fanorder:
                     tri = self.triangles[tri_idx]
@@ -432,10 +418,6 @@ class Model():
                     normal = self.normal(TriangleIndex(fan.center, prev_v, cur_v))
                     f.write(struct.pack("<3f", normal.x, normal.y, normal.z))
                     prev_v = cur_v
-<<<<<<< HEAD
-=======
-
->>>>>>> 70f07d4e4fd7ccc733665a7d42641bc0ebca83de
 
 # source https://graphics.cs.utah.edu/courses/cs6620/fall2013/?prj=5
 model = Model().load_from_obj(pwd + "/teapot2.obj")
