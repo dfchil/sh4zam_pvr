@@ -496,9 +496,6 @@ void render_teapot(void) {
         alignas(32) shz_vec3_t v3 =
             perspective_n_swizzle(shz_xmtrx_transform_vec4(
                 (shz_vec4_t){.xyz = triface->v3, .w = 1.0f}));
-        // if (color != 0){
-        //     continue; 
-        // }
         pvr_vertex_t* v = (pvr_vertex_t*)pvr_dr_target(dr_state);
         v->flags = PVR_CMD_VERTEX;
         v->x = v1.x;

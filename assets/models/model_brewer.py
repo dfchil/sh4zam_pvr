@@ -148,10 +148,18 @@ class Model():
         self.vertex_strips:list[list[VertexIndex]] = []
 
     def normal(self, face: typing.Union[TriangleIndex, QuadIndex]) -> Vec3f:
-        v0 = self.vertices[face.v0.vertex_index]
-        v1 = self.vertices[face.v1.vertex_index]
-        v2 = self.vertices[face.v2.vertex_index] if isinstance(face, TriangleIndex) else self.vertices[face.v3.vertex_index]
-        return v1.minussed(v0).crossed(v2.minussed(v0)).normalized()
+        if isinstance(face, TriangleIndex):
+            v0 = self.vertices[face.v0.vertex_index]
+            v1 = self.vertices[face.v1.vertex_index]
+            v2 = self.vertices[face.v2.vertex_index]
+            return v1.minussed(v0).crossed(v2.minussed(v0)).normalized()
+        else:
+            v0 = self.vertices[face.v0.vertex_index]
+            v1 = self.vertices[face.v1.vertex_index]
+            v2 = self.vertices[face.v2.vertex_index]
+            v3 = self.vertices[face.v3.vertex_index]
+
+            return v0.minussed(v2).crossed(v1.minussed(v3)).normalized()
 
     def load_from_obj(self, filepath:str):
         with open(filepath, "r") as f:
@@ -281,19 +289,12 @@ class Model():
                     point_on_line = a.plussed(n.scaled(t))
                     new_vertices[idx] = point_on_line
 
-
-            
-            # merge fans
             new_blades = new_new_blades
 
-            # remainder = (len(fan.vertices)+1) % len(new_new_blades)
-            # print("Remainder:", remainder)
-            # new_blades.extend(new_new_blades[-remainder:])
-
+        # add other side to quads
         for i in range(len(fan.vertices)):
             new_quads[(i-1) % len(fan.vertices)].v2 = new_quads[i].v1  # wrap around
             new_quads[(i-1) % len(fan.vertices)].v3 = new_quads[i].v0
-
 
         fan.vertices = new_blades
         self.vertices.extend(new_vertices)
@@ -483,8 +484,8 @@ model.fan_triangles()
 # model.fan_shed_quads(1, cut_length_from_center=0.6, combine_fans=1)
 # model.fan_shed_quads(1, cut_length_from_center=0.5, combine_fans=5)
 
-model.fan_shed_quads(0, cut_length_from_center=0.2, combine_fans=5)
-model.fan_shed_quads(1, cut_length_from_center=0.2, combine_fans=5)
+model.fan_shed_quads(0, cut_length_from_center=0.2, combine_fans=6)
+model.fan_shed_quads(1, cut_length_from_center=0.2, combine_fans=6)
 
 model.fan2triangles(1)
 model.fan2triangles(0)
