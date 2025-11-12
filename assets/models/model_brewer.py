@@ -148,10 +148,18 @@ class Model():
         self.vertex_strips:list[list[VertexIndex]] = []
 
     def normal(self, face: typing.Union[TriangleIndex, QuadIndex]) -> Vec3f:
-        v0 = self.vertices[face.v0.vertex_index]
-        v1 = self.vertices[face.v1.vertex_index]
-        v2 = self.vertices[face.v2.vertex_index] if isinstance(face, TriangleIndex) else self.vertices[face.v3.vertex_index]
-        return v1.minussed(v0).crossed(v2.minussed(v0)).normalized()
+        if isinstance(face, TriangleIndex):
+            v0 = self.vertices[face.v0.vertex_index]
+            v1 = self.vertices[face.v1.vertex_index]
+            v2 = self.vertices[face.v2.vertex_index]
+            return v1.minussed(v0).crossed(v2.minussed(v0)).normalized()
+        else:
+            v0 = self.vertices[face.v0.vertex_index]
+            v1 = self.vertices[face.v1.vertex_index]
+            v2 = self.vertices[face.v2.vertex_index]
+            v3 = self.vertices[face.v3.vertex_index]
+
+            return v0.minussed(v2).crossed(v1.minussed(v3)).normalized()
 
     def load_from_obj(self, filepath:str):
         with open(filepath, "r") as f:
@@ -483,8 +491,8 @@ model.fan_triangles()
 # model.fan_shed_quads(1, cut_length_from_center=0.6, combine_fans=1)
 # model.fan_shed_quads(1, cut_length_from_center=0.5, combine_fans=5)
 
-model.fan_shed_quads(0, cut_length_from_center=0.2, combine_fans=5)
-model.fan_shed_quads(1, cut_length_from_center=0.2, combine_fans=5)
+model.fan_shed_quads(0, cut_length_from_center=0.2, combine_fans=6)
+model.fan_shed_quads(1, cut_length_from_center=0.2, combine_fans=6)
 
 model.fan2triangles(1)
 model.fan2triangles(0)
