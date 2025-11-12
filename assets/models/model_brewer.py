@@ -42,14 +42,14 @@ class Vec3f ():
             return Vec3f(0.0, 0.0, 0.0)
         return self.scaled(1.0/length)
     
-    def minus(self, other:'Vec3f') -> 'Vec3f':
+    def minussed(self, other:'Vec3f') -> 'Vec3f':
         return Vec3f(
             self.x - other.x,
             self.y - other.y,
             self.z - other.z
         )
     
-    def plus(self, other:'Vec3f') -> 'Vec3f':
+    def plussed(self, other:'Vec3f') -> 'Vec3f':
         return Vec3f(
             self.x + other.x,
             self.y + other.y,
@@ -62,6 +62,10 @@ class Vec3f ():
             self.z * other.x - self.x * other.z,
             self.x * other.y - self.y * other.x
         )
+
+    def dot(self, other:'Vec3f') -> float:
+        return self.x * other.x + self.y * other.y + self.z * other.z
+
 
 class TexCoord2f ():
     def __init__(self, u:float, v:float):
@@ -101,8 +105,6 @@ class TriangleIndex ():
             vertex = model.vertices[vi.vertex_index]
             stlfile.write(struct.pack("<3f", vertex.x, vertex.y, vertex.z))
         stlfile.write(struct.pack("<H", 0))
-
-        
 
 class QuadIndex ():
     def __init__(self, v0:typing.Optional[VertexIndex], v1:typing.Optional[VertexIndex], v2:typing.Optional[VertexIndex], v3:typing.Optional[VertexIndex]):
@@ -149,7 +151,7 @@ class Model():
         v0 = self.vertices[face.v0.vertex_index]
         v1 = self.vertices[face.v1.vertex_index]
         v2 = self.vertices[face.v2.vertex_index] if isinstance(face, TriangleIndex) else self.vertices[face.v3.vertex_index]
-        return v1.minus(v0).crossed(v2.minus(v0)).normalized()
+        return v1.minussed(v0).crossed(v2.minussed(v0)).normalized()
 
     def load_from_obj(self, filepath:str):
         with open(filepath, "r") as f:
@@ -201,7 +203,6 @@ class Model():
                 potential_fans[fan_center].append(tri_idx)
         for fan_center in potential_fans:
             if len(potential_fans[fan_center]) > 10:
-                print("Fan at vertex", fan_center, "has", len(potential_fans[fan_center]), "triangles")
                 pairs:dict[int, tuple[int, int]] = {}
                 for tri_idx in potential_fans[fan_center]:
                     tri = self.triangles[tri_idx]
@@ -230,7 +231,6 @@ class Model():
                     nxt_vert = [v for v in [tri.v0, tri.v1, tri.v2] if v.vertex_index == vi]
                     fan.add_vertex(nxt_vert[0])
                 output_fans.append(fan)
-                print("  Fan:", fan)
 
                 # remove these triangles from the modelModel(vertices=3241, normals=3242, texcoords=1588, triangles=0, quads=3120)
                 for _, tri_idx in fanorder:
@@ -242,7 +242,7 @@ class Model():
 
         return output_fans
 
-    def fan_shed_quads(self, fan_idx:int, cut_length_from_center:float, split_quads:int=1):
+    def fan_shed_quads(self, fan_idx:int, cut_length_from_center:float, combine_fans:int=1):
         fan = self.triangle_fans[fan_idx]
         center_coord = self.vertices[fan.center.vertex_index]
         new_vertices:list[Vec3f] = []
@@ -252,19 +252,48 @@ class Model():
         for i in range(len(fan.vertices)):
             vi = fan.vertices[i]
             vert_coord = self.vertices[vi.vertex_index]
-            new_coord = center_coord.plus(
-                vert_coord.minus(
+            new_coord = center_coord.plussed(
+                vert_coord.minussed(
                     center_coord).scaled(cut_length_from_center)
                 )
             new_vertidx = VertexIndex(len(self.vertices) + i, vi.normal_index, vi.texcoord_index)
-            new_vertices.append(new_coord)
-            new_quads[i].v2 = vi
-            new_quads[i].v3 = new_vertidx
             new_blades.append(new_vertidx)
+            new_vertices.append(new_coord)
+
+            new_quads[i].v0 = new_vertidx
+            new_quads[i].v1 = vi
+        
+        if combine_fans > 1:  # move quad verts inward to center
+            new_new_blades:list[VertexIndex] = []
+            for i in range(0, len(new_vertices), combine_fans):
+                new_new_blades.append(new_blades[i])
+                a:Vec3f = new_vertices[i]
+                end_idx = min(i + combine_fans +1, len(new_vertices))
+                b:Vec3f = new_vertices[end_idx % len(new_vertices)]
+                n = b.minussed(a).normalized()
+                num_verts = min(combine_fans, len(new_vertices) - i)
+                for idx in range(i + 1, end_idx): # skip first and last
+                    if idx >= len(new_vertices):
+                        break
+                    vert_coord = new_vertices[idx]
+                    # point on line
+                    t = vert_coord.minussed(a).dot(n)
+                    point_on_line = a.plussed(n.scaled(t))
+                    new_vertices[idx] = point_on_line
+
+
+            
+            # merge fans
+            new_blades = new_new_blades
+
+            # remainder = (len(fan.vertices)+1) % len(new_new_blades)
+            # print("Remainder:", remainder)
+            # new_blades.extend(new_new_blades[-remainder:])
 
         for i in range(len(fan.vertices)):
-            new_quads[i].v0 = new_quads[i-1 % len(fan.vertices)].v3  # wrap around
-            new_quads[i].v1 = new_quads[i-1 % len(fan.vertices)].v2
+            new_quads[(i-1) % len(fan.vertices)].v2 = new_quads[i].v1  # wrap around
+            new_quads[(i-1) % len(fan.vertices)].v3 = new_quads[i].v0
+
 
         fan.vertices = new_blades
         self.vertices.extend(new_vertices)
@@ -275,7 +304,15 @@ class Model():
         fan = self.triangle_fans.pop(fan_idx)
         remaining_vertices = fan.vertices
         # make even
-        while len(remaining_vertices) >= 4:
+        while len(remaining_vertices) >= 3:
+            if len(remaining_vertices) == 3:
+                new_triangles.append(TriangleIndex(
+                    remaining_vertices[0],
+                    remaining_vertices[1],
+                    remaining_vertices[2]
+                ))
+                remaining_vertices = []
+                break
             if len(remaining_vertices) %2 != 0:
                 new_triangles.append(TriangleIndex(
                     remaining_vertices[0],
@@ -338,6 +375,18 @@ class Model():
                              f"{quad.v1.vertex_index +1}/{quad.v1.texcoord_index +1}/{quad.v1.normal_index +1} "
                              f"{quad.v2.vertex_index +1}/{quad.v2.texcoord_index +1}/{quad.v2.normal_index +1} "
                              f"{quad.v3.vertex_index +1}/{quad.v3.texcoord_index +1}/{quad.v3.normal_index +1}\n")
+            
+            for fan in self.triangle_fans:
+                center_v = self.vertices[fan.center.vertex_index]
+                prev_v:VertexIndex= fan.vertices[-1]
+                for i in range(len(fan.vertices) +1):
+                    next_v:VertexIndex = fan.vertices[i % len(fan.vertices)]
+                    tri = TriangleIndex(fan.center, prev_v, next_v)
+                    f.write(f"f {tri.v0.vertex_index +1}/{tri.v0.texcoord_index +1}/{tri.v0.normal_index +1} "
+                             f"{tri.v1.vertex_index +1}/{tri.v1.texcoord_index +1}/{tri.v1.normal_index +1} "
+                             f"{tri.v2.vertex_index +1}/{tri.v2.texcoord_index +1}/{tri.v2.normal_index +1}\n")
+                    prev_v = next_v
+
 
     def write_to_shzmdl(self, filepath:str):
         with open(filepath, "wb") as f:
@@ -423,9 +472,19 @@ class Model():
 model = Model().load_from_obj(pwd + "/teapot2.obj")
 # model.quads = []  # discard quads for STL export
 # model.triangles = []
+
+
+
 model.fan_triangles()
-model.fan_shed_quads(0, cut_length_from_center=0.2)
-model.fan_shed_quads(1, cut_length_from_center=0.2)
+
+# model.fan_shed_quads(0, cut_length_from_center=0.6, combine_fans=1)
+# model.fan_shed_quads(0, cut_length_from_center=0.5, combine_fans=5)
+
+# model.fan_shed_quads(1, cut_length_from_center=0.6, combine_fans=1)
+# model.fan_shed_quads(1, cut_length_from_center=0.5, combine_fans=5)
+
+model.fan_shed_quads(0, cut_length_from_center=0.2, combine_fans=5)
+model.fan_shed_quads(1, cut_length_from_center=0.2, combine_fans=5)
 
 model.fan2triangles(1)
 model.fan2triangles(0)

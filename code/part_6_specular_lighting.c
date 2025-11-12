@@ -482,7 +482,10 @@ void render_teapot(void) {
 
         uint32_t color = (uint32_t)(final_light.x * 255) << 16 |
                          (uint32_t)(final_light.y * 255) << 8 |
-                         (uint32_t)(final_light.z * 255) | 0xFF000000;        
+                         (uint32_t)(final_light.z * 255) | 0xFF000000;
+        // color = (uint32_t)(triface->normal.x * 127 + 128) << 16 |
+        //         (uint32_t)(triface->normal.y * 127 + 128) << 8 |
+        //         (uint32_t)(triface->normal.z * 127 + 128) | 0xFF000000;
         
         alignas(32) shz_vec3_t v1 =
             perspective_n_swizzle(shz_xmtrx_transform_vec4(
@@ -538,6 +541,11 @@ void render_teapot(void) {
         spr_hdr.argb = (uint32_t)(final_light.x * 255) << 16 |
                        (uint32_t)(final_light.y * 255) << 8 |
                        (uint32_t)(final_light.z * 255) | 0xFF000000;
+
+        // spr_hdr.argb = (uint32_t)(quadface->normal.x * 127 + 128) << 16 |
+        //         (uint32_t)(quadface->normal.y * 127 + 128) << 8 |
+        //         (uint32_t)(quadface->normal.z * 127 + 128) | 0xFF000000;
+
         // spr_hdr.m0.clip_mode = PVR_USERCLIP_INSIDE;
 
         spr_hdr_pntr = (pvr_sprite_hdr_t*)pvr_dr_target(dr_state);
