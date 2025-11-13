@@ -39,7 +39,8 @@ static float fovy = DEFAULT_FOV;
 static const alignas(32) uint8_t teapot_shzmdl[] = {
 // #embed "../assets/models/teapot.stl"
 // #embed "../assets/models/Utah_teapot_(solid).stl"
-#embed "../assets/models/teapot.shzmdl"
+// #embed "../assets/models/teapot.shzmdl"
+#embed "../assets/models/sphere.shzmdl"
 };
 
 static inline void draw_sprite_line(shz_vec4_t* from, shz_vec4_t* to,
