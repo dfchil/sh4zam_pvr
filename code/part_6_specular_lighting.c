@@ -96,7 +96,7 @@ static inline float calc_light(shz_vec3_t* model_vert, shz_vec3_t* face_normal,
 
     float light_intensity = SHZ_MAX(shz_vec3_dot(diff_normal, light_dir), 0.0f);
 
-    if (light_intensity > 0.0f) {
+    // if (light_intensity > 0.0f) {
         /* specular light */
         shz_vec3_t spec_normal = shz_vec3_normalize(
             shz_mat4x4_trans_vec3(inverse_transpose, *face_normal));
@@ -113,7 +113,7 @@ static inline float calc_light(shz_vec3_t* model_vert, shz_vec3_t* face_normal,
             SHZ_MAX(shz_vec3_dot(spec_view_dir, reflect_dir), 0.0f);
         light_intensity +=
             specular_strength * light_intensity * shz_powf(dot_spec, 32.0f);
-    }
+    // }
     return SHZ_MAX(light_intensity, 0.0f);
 }
 

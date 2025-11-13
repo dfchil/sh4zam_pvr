@@ -496,4 +496,6 @@ teapot.write_to_obj(pwd + "/teapot_out.obj")
 print(teapot)
 
 sphere = Model().load_from_obj(pwd + "/sphere.obj")
+sphere.fan_triangles()
 sphere.write_to_shzmdl(pwd + "/sphere.shzmdl")
+print(sphere)
