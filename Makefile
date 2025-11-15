@@ -1,3 +1,5 @@
+include $(KOS_BASE)/Makefile.rules
+
 TARGETNAME = sh4zamsprites
 BUILDDIR=build
 OBJS := $(shell find . -name '*.c' -not -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.\(.*\).c,$(BUILDDIR)\1.o,g')
@@ -10,7 +12,6 @@ DTTEXTURES:=$(shell find assets/textures -name '*.png'| sed -e 's,assets/texture
 .PRECIOUS: $(DTTEXTURES)
 
 LDLIBS 	:= -lm -lm -lkosutils -lsh4zam
-
 
 DEFINES=
 ifdef RELEASEBUILD
@@ -71,29 +72,23 @@ CFLAGS+=\
 		-ffunction-sections -fdata-sections -ftls-model=local-exec \
 		-m4-single-only \
 		-fms-extensions \
-		$(LDLIBS) \
-		${DEFINES} \
+		$(DEFINES) \
 
-
-SOURCES := $(shell find . -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.*/code/\(.*\).c,\1.c,g')
-$(info $$SOURCES is [${SOURCES}])
-
-ELFS := $(SOURCES:.c=.elf)
-CDIS := $(SOURCES:.c=.cdi)
-
-$(info $$'ELFS' is [${ELFS}])
+PARTS := $(shell find . -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.*/code/\(.*\).c,\1.c,g')
+ELFS := $(PARTS:.c=.elf)
+CDIS := $(PARTS:.c=.cdi)
 
 elfs: ${ELFS}
 
-$(ELFS): %.elf: code/%.c $(OBJS)
-	$(CC) $(CFLAGS) $< $(OBJS) -o $@
+all: elfs 
+.DEFAULT: elfs
 
-include $(KOS_BASE)/Makefile.rules
+$(ELFS): %.elf: code/%.c $(OBJS)
+	$(CC) -o $@ $(CFLAGS) $< $(OBJS) $(LDLIBS)
 
 $(BUILDDIR)/%.o: %.c Makefile $(DTTEXTURES)
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(CFLAGS) -c $< -o $@
-
 
 TEXDIR_PAL4=$(BUILDDIR)/pvrtex/pal4
 $(TEXDIR_PAL4):
@@ -121,9 +116,20 @@ $(TEXDIR_ARGB1555_VQ_TW)/%.dt: assets/textures/argb1555_vq_tw/%.png $(TEXDIR_ARG
 
 $(CDIS): %.cdi: %.elf
 	mkdcdisc -n $* -e $<  -N -o $*.cdi -v 3 -m
-
 cdis: ${CDIS}
 
-
 clean:
-	-rm -rf $(ELFS) $(OBJS) *.cdi
+	-rm -rf *.elf *.cdi $(OBJS) 
+
+.PHONY: list help
+list:
+	@LC_ALL=C $(MAKE) -pRrq -f $(firstword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/(^|\n)# Files(\n|$$)/,/(^|\n)# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | grep -E -v -e '^[^[:alnum:]]' -e '^$@$$'
+
+
+help:
+	@echo "make [TARGET] where TARGET is one of:"
+	@echo "  elfs         Build all part_*.elf files"
+	@echo "  cdis         Build all part_*.cdi files"
+	@echo "  clean        Remove all built files"
+	@echo "  help         Show this help message"
+	@echo "  list         List all make targets"

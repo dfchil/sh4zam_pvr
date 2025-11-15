@@ -7,5 +7,5 @@ TARGET=part_6_specular_lighting.elf
 source /opt/toolchains/dc/kos/environ.sh
 make clean
 # DCPROF=1 SINGLEDEMO=7 
-SHOWFRAMETIMES=1 DEBUG=1 OPTLEVEL=3  BASEPATH=/pc make $TARGET -j 10
+SHOWFRAMETIMES=1 DEBUG=1 OPTLEVEL=s  BASEPATH=/pc make $TARGET -j 10
 exit
