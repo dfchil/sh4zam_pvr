@@ -1,3 +1,5 @@
+include $(KOS_BASE)/Makefile.rules
+
 TARGETNAME = sh4zamsprites
 BUILDDIR=build
 OBJS := $(shell find . -name '*.c' -not -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.\(.*\).c,$(BUILDDIR)\1.o,g')
@@ -10,7 +12,6 @@ DTTEXTURES:=$(shell find assets/textures -name '*.png'| sed -e 's,assets/texture
 .PRECIOUS: $(DTTEXTURES)
 
 LDLIBS 	:= -lm -lm -lkosutils -lsh4zam
-
 
 DEFINES=
 ifdef RELEASEBUILD
@@ -66,57 +67,50 @@ CFLAGS+=\
 		-fno-strict-aliasing \
 		-fomit-frame-pointer \
 		-fbuiltin -ffast-math -ffp-contract=fast \
+		-mfsrra \
+		-mfsca \
 		-ml \
 		-matomic-model=soft-imask \
 		-ffunction-sections -fdata-sections -ftls-model=local-exec \
 		-m4-single-only \
 		-fms-extensions \
-		$(LDLIBS) \
-		${DEFINES} \
+		-fipa-pta \
+		$(DEFINES) \
 
-
-SOURCES := $(shell find . -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.*/code/\(.*\).c,\1.c,g')
-$(info $$SOURCES is [${SOURCES}])
-
-ELFS := $(SOURCES:.c=.elf)
-CDIS := $(SOURCES:.c=.cdi)
-
-$(info $$'ELFS' is [${ELFS}])
+PARTS := $(shell find . -name "part_*.c" -not -path "./.git/*" |sed -e 's,\.*/code/\(.*\).c,\1.c,g')
+ELFS := $(PARTS:.c=.elf)
+CDIS := $(PARTS:.c=.cdi)
 
 elfs: ${ELFS}
 
-$(ELFS): %.elf: code/%.c $(OBJS)
-	$(CC) $(CFLAGS) $< $(OBJS) -o $@
+all: elfs 
+.DEFAULT: elfs
 
-include $(KOS_BASE)/Makefile.rules
+$(ELFS): %.elf: code/%.c $(OBJS)
+	$(CC) -o $@ $(CFLAGS) $< $(OBJS) $(LDLIBS)
 
 $(BUILDDIR)/%.o: %.c Makefile $(DTTEXTURES)
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-
 TEXDIR_PAL4=$(BUILDDIR)/pvrtex/pal4
-$(TEXDIR_PAL4):
-	mkdir -p $@
-$(TEXDIR_PAL4)/%.dt: assets/textures/pal4/%.png $(TEXDIR_PAL4)
+$(TEXDIR_PAL4)/%.dt: assets/textures/pal4/%.png
+	@mkdir -p $(shell dirname $@)
 	pvrtex -f PAL4BPP -c --max-color 16 -i $< -o $@
 
 TEXDIR_PAL8=$(BUILDDIR)/pvrtex/pal8
-$(TEXDIR_PAL8):
-	mkdir -p $@
-$(TEXDIR_PAL8)/%.dt: assets/textures/pal8/%.png $(TEXDIR_PAL8)
+$(TEXDIR_PAL8)/%.dt: assets/textures/pal8/%.png
+	@mkdir -p $(shell dirname $@)
 	pvrtex -f PAL8BPP -c --max-color 256 -i $< -o $@
 
 TEXDIR_RGB565_VQ_TW=$(BUILDDIR)/pvrtex/rgb565_vq_tw
-$(TEXDIR_RGB565_VQ_TW):
-	mkdir -p $@
-$(TEXDIR_RGB565_VQ_TW)/%.dt: assets/textures/rgb565_vq_tw/%.png $(TEXDIR_RGB565_VQ_TW)
+$(TEXDIR_RGB565_VQ_TW)/%.dt: assets/textures/rgb565_vq_tw/%.png 
+	@mkdir -p $(shell dirname $@)
 	pvrtex -f RGB565 -c -i $< -o $@
 
 TEXDIR_ARGB1555_VQ_TW=$(BUILDDIR)/pvrtex/argb1555_vq_tw
-$(TEXDIR_ARGB1555_VQ_TW):
-	mkdir -p $@
-$(TEXDIR_ARGB1555_VQ_TW)/%.dt: assets/textures/argb1555_vq_tw/%.png $(TEXDIR_ARGB1555_VQ_TW)
+$(TEXDIR_ARGB1555_VQ_TW)/%.dt: assets/textures/argb1555_vq_tw/%.png
+	@mkdir -p $(shell dirname $@)
 	pvrtex -f ARGB1555 -c -i $< -o $@
 
 $(CDIS): %.cdi: %.elf
@@ -124,6 +118,18 @@ $(CDIS): %.cdi: %.elf
 
 cdis: ${CDIS}
 
-
 clean:
-	-rm -rf $(ELFS) $(OBJS) *.cdi
+	-rm -rf *.elf *.cdi $(OBJS) 
+
+.PHONY: list help
+list:
+	@LC_ALL=C $(MAKE) -pRrq -f $(firstword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/(^|\n)# Files(\n|$$)/,/(^|\n)# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | grep -E -v -e '^[^[:alnum:]]' -e '^$@$$'
+
+
+help:
+	@echo "make [TARGET] where TARGET is one of:"
+	@echo "  elfs         Build all part_*.elf files"
+	@echo "  cdis         Build all part_*.cdi files"
+	@echo "  clean        Remove all built files"
+	@echo "  help         Show this help message"
+	@echo "  list         List all make targets"

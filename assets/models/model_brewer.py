@@ -152,7 +152,7 @@ class Model():
             v0 = self.vertices[face.v0.vertex_index]
             v1 = self.vertices[face.v1.vertex_index]
             v2 = self.vertices[face.v2.vertex_index]
-            return v1.minussed(v0).crossed(v2.minussed(v0)).normalized()
+            return v1.minussed(v0).crossed(v2.minussed(v1)).normalized()
         else:
             v0 = self.vertices[face.v0.vertex_index]
             v1 = self.vertices[face.v1.vertex_index]
@@ -289,19 +289,12 @@ class Model():
                     point_on_line = a.plussed(n.scaled(t))
                     new_vertices[idx] = point_on_line
 
-
-            
-            # merge fans
             new_blades = new_new_blades
 
-            # remainder = (len(fan.vertices)+1) % len(new_new_blades)
-            # print("Remainder:", remainder)
-            # new_blades.extend(new_new_blades[-remainder:])
-
+        # add other side to quads
         for i in range(len(fan.vertices)):
             new_quads[(i-1) % len(fan.vertices)].v2 = new_quads[i].v1  # wrap around
             new_quads[(i-1) % len(fan.vertices)].v3 = new_quads[i].v0
-
 
         fan.vertices = new_blades
         self.vertices.extend(new_vertices)
@@ -477,13 +470,13 @@ class Model():
                     prev_v = cur_v
 
 # source https://graphics.cs.utah.edu/courses/cs6620/fall2013/?prj=5
-model = Model().load_from_obj(pwd + "/teapot2.obj")
+teapot = Model().load_from_obj(pwd + "/teapot2.obj")
 # model.quads = []  # discard quads for STL export
 # model.triangles = []
 
 
 
-model.fan_triangles()
+teapot.fan_triangles()
 
 # model.fan_shed_quads(0, cut_length_from_center=0.6, combine_fans=1)
 # model.fan_shed_quads(0, cut_length_from_center=0.5, combine_fans=5)
@@ -491,13 +484,22 @@ model.fan_triangles()
 # model.fan_shed_quads(1, cut_length_from_center=0.6, combine_fans=1)
 # model.fan_shed_quads(1, cut_length_from_center=0.5, combine_fans=5)
 
-model.fan_shed_quads(0, cut_length_from_center=0.2, combine_fans=6)
-model.fan_shed_quads(1, cut_length_from_center=0.2, combine_fans=6)
+teapot.fan_shed_quads(0, cut_length_from_center=0.2, combine_fans=6)
+teapot.fan_shed_quads(1, cut_length_from_center=0.2, combine_fans=6)
 
-model.fan2triangles(1)
-model.fan2triangles(0)
+teapot.fan2triangles(1)
+teapot.fan2triangles(0)
 
-model.write_to_stl(pwd + "/teapot.stl")
-model.write_to_shzmdl(pwd + "/teapot.shzmdl")
-model.write_to_obj(pwd + "/teapot_out.obj")
-print(model)
+teapot.write_to_stl(pwd + "/teapot.stl")
+teapot.write_to_shzmdl(pwd + "/teapot.shzmdl")
+teapot.write_to_obj(pwd + "/teapot_out.obj")
+print(teapot)
+
+sphere = Model().load_from_obj(pwd + "/sphere.obj")
+sphere.fan_triangles()
+sphere.write_to_shzmdl(pwd + "/sphere.shzmdl")
+print(sphere)
+
+sphere_test = Model().load_from_obj(pwd + "/sphere_test.obj")
+sphere_test.write_to_shzmdl(pwd + "/sphere_test.shzmdl")
+print(sphere_test)
