@@ -371,7 +371,7 @@ int main(void) {
          PVR_BINSIZE_8},
         3 << 19,        // Vertex buffer size, 1.5MB
         0,              // No DMA15
-        SUPERSAMPLING,  // Set horisontal FSAA
+        ENJ_SUPERSAMPLING,  // Set horisontal FSAA
         0,              // Translucent Autosort enabled.
         3,              // Extra OPBs
         0,              // vbuf_doublebuf_disabled

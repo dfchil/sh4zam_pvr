@@ -14,7 +14,6 @@
 #include <arch/gdb.h>
 #endif
 
-
 #include <sh4zam/shz_sh4zam.h>
 #include <sh4zamsprites/cube.h> /* Cube vertices and side strips layout */
 #include <sh4zamsprites/perspective.h> /* Perspective projection matrix functions */
@@ -438,70 +437,67 @@ static inline void cube_reset_state() {
 }
 
 static inline void update_state(void *__unused) {
-  for (int i = 0; i < 4; i++) {
-    maple_device_t *cont = maple_enum_type(i, MAPLE_FUNC_CONTROLLER);
-    if (cont) {
-      cont_state_t *state = (cont_state_t *)maple_dev_status(cont);
 
-      if (state->buttons & CONT_DPAD_RIGHT) {
-        if ((dpad_right_down & (1 << i)) == 0) {
-          dpad_right_down |= (1 << i);
-          switch (render_mode) {
-          case TEXTURED_TR:
-          case CUBES_CUBE_MIN:
-          case CUBES_CUBE_MAX:
-            render_mode++;
-            break;
-          default:
-            cube_state.grid_size += WIREFRAME_GRID_LINES_STEP;
-            if (cube_state.grid_size > WIREFRAME_MAX_GRID_LINES) {
-              cube_state.grid_size = WIREFRAME_MIN_GRID_LINES;
-              render_mode++;
-              if (render_mode >= MAX_RENDERMODE) {
-                render_mode = TEXTURED_TR;
-              }
-            }
+  enj_ctrlr_state_t **ctrlr_states = enj_ctrl_get_states();
+  for (int i = 0; i < 4; i++) {
+    if (ctrlr_states[i] == NULL)
+      continue;
+
+    if (ctrlr_states[i]->button.RIGHT == ENJ_BUTTON_DOWN_THIS_FRAME) {
+      switch (render_mode) {
+      case TEXTURED_TR:
+      case CUBES_CUBE_MIN:
+      case CUBES_CUBE_MAX:
+        render_mode++;
+        break;
+      default:
+        cube_state.grid_size += WIREFRAME_GRID_LINES_STEP;
+        if (cube_state.grid_size > WIREFRAME_MAX_GRID_LINES) {
+          cube_state.grid_size = WIREFRAME_MIN_GRID_LINES;
+          render_mode++;
+          if (render_mode >= MAX_RENDERMODE) {
+            render_mode = TEXTURED_TR;
           }
         }
-      } else {
-        dpad_right_down &= ~(1 << i);
-      }
-      if (abs(state->joyx) > 16)
-        cube_state.pos.x +=
-            (state->joyx / 32768.0f) * 20.5f; // Increased sensitivity
-      if (abs(state->joyy) > 16)
-        cube_state.pos.y += (state->joyy / 32768.0f) *
-                            20.5f; // Increased sensitivity and inverted Y
-      if (state->ltrig > 16)       // Left trigger to zoom out
-        cube_state.pos.z -= (state->ltrig / 255.0f) * ZOOM_SPEED;
-      if (state->rtrig > 16) // Right trigger to zoom in
-        cube_state.pos.z += (state->rtrig / 255.0f) * ZOOM_SPEED;
-      if (cube_state.pos.z < MIN_ZOOM)
-        cube_state.pos.z = MIN_ZOOM; // Farther away
-      if (cube_state.pos.z > MAX_ZOOM)
-        cube_state.pos.z = MAX_ZOOM; // Closer to the screen
-      if (state->buttons & CONT_X)
-        cube_state.speed.y += 0.001f;
-      if (state->buttons & CONT_B)
-        cube_state.speed.y -= 0.001f;
-      if (state->buttons & CONT_A)
-        cube_state.speed.x += 0.001f;
-      if (state->buttons & CONT_Y)
-        cube_state.speed.x -= 0.001f;
-      if (state->buttons & CONT_DPAD_LEFT) {
-        fovy = DEFAULT_FOV;
-        cube_reset_state();
-      }
-      if (state->buttons & CONT_DPAD_DOWN) {
-        fovy -= 1.0f;
-        update_projection_view(fovy);
-      }
-      if (state->buttons & CONT_DPAD_UP) {
-        fovy += 1.0f;
-        update_projection_view(fovy);
       }
     }
+
+    if (abs(ctrlr_states[i]->joyx) > 16)
+      cube_state.pos.x +=
+          (ctrlr_states[i]->joyx / 32768.0f) * 20.5f; // Increased sensitivity
+    if (abs(ctrlr_states[i]->joyy) > 16)
+      cube_state.pos.y += (ctrlr_states[i]->joyy / 32768.0f) *
+                          20.5f;        // Increased sensitivity and inverted Y
+    if (ctrlr_states[i]->ltrigger > 16) // Left trigger to zoom out
+      cube_state.pos.z -= (ctrlr_states[i]->ltrigger / 255.0f) * ZOOM_SPEED;
+    if (ctrlr_states[i]->rtrigger > 16) // Right trigger to zoom in
+      cube_state.pos.z += (ctrlr_states[i]->rtrigger / 255.0f) * ZOOM_SPEED;
+    if (cube_state.pos.z < MIN_ZOOM)
+      cube_state.pos.z = MIN_ZOOM; // Farther away
+    if (cube_state.pos.z > MAX_ZOOM)
+      cube_state.pos.z = MAX_ZOOM; // Closer to the screen
+    if (ctrlr_states[i]->button.X & ENJ_BUTTON_DOWN)
+      cube_state.speed.y += 0.001f;
+    if (ctrlr_states[i]->button.B & ENJ_BUTTON_DOWN)
+      cube_state.speed.y -= 0.001f;
+    if (ctrlr_states[i]->button.A & ENJ_BUTTON_DOWN)
+      cube_state.speed.x += 0.001f;
+    if (ctrlr_states[i]->button.Y & ENJ_BUTTON_DOWN)
+      cube_state.speed.x -= 0.001f;
+    if (ctrlr_states[i]->button.LEFT & ENJ_BUTTON_DOWN_THIS_FRAME) {
+      fovy = DEFAULT_FOV;
+      cube_reset_state();
+    }
+    if (ctrlr_states[i]->button.DOWN & ENJ_BUTTON_DOWN) {
+      fovy -= 1.0f;
+      update_projection_view(fovy);
+    }
+    if (ctrlr_states[i]->button.UP & ENJ_BUTTON_DOWN) {
+      fovy += 1.0f;
+      update_projection_view(fovy);
+    }
   }
+
   cube_state.rot.x += cube_state.speed.x;
   cube_state.rot.y += cube_state.speed.y;
   cube_state.speed.x *= 0.99f;
