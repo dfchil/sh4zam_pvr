@@ -12,13 +12,6 @@
 #include <arch/gdb.h>
 #endif
 
-#define SUPERSAMPLING 1  // Set to 1 to enable horizontal FSAA, 0 to disable
-#if SUPERSAMPLING == 1
-#define XSCALE 2
-#else
-#define XSCALE 1
-#endif
-
 #ifndef SHOWFRAMETIMES
 #define SHOWFRAMETIMES 0
 #endif
@@ -88,13 +81,13 @@ static inline void draw_sprite_line(shz_vec4_t* from, shz_vec4_t* to,
     quad->bx = to->x;
     quad->by = to->y;
     quad->bz = to->z + centerz * 0.1;
-    quad->cx = to->x + LINE_WIDTH * XSCALE * direction.y;
+    quad->cx = to->x + LINE_WIDTH * ENJ_XSCALE * direction.y;
     pvr_dr_commit(quad);
     quad = (pvr_sprite_col_t*)pvr_dr_target(*dr_state);
     pvr_sprite_col_t* quad2ndhalf = (pvr_sprite_col_t*)((int)quad - 32);
     quad2ndhalf->cy = to->y - LINE_WIDTH * direction.x;
     quad2ndhalf->cz = to->z + centerz * 0.1;
-    quad2ndhalf->dx = from->x + LINE_WIDTH * XSCALE * direction.y;
+    quad2ndhalf->dx = from->x + LINE_WIDTH * ENJ_XSCALE * direction.y;
     quad2ndhalf->dy = from->y - LINE_WIDTH * direction.x;
     pvr_dr_commit(quad);
 }
@@ -113,11 +106,11 @@ static inline shz_vec3_t perspective(shz_vec4_t v) {
 }
 
 void render_teapot(void) {
-    const float screen_width = vid_mode->width * XSCALE;
+    const float screen_width = vid_mode->width * ENJ_XSCALE;
     const float screen_height = vid_mode->height;
     const float near_z = 0.0f;
     const float fov = DEFAULT_FOV * SHZ_F_PI / 180.0f;
-    const float aspect = shz_divf_fsrra(screen_width, (screen_height * XSCALE));
+    const float aspect = shz_divf_fsrra(screen_width, (screen_height * ENJ_XSCALE));
 
     shz_vec3_t eye = shz_vec3_init(0.0f, -0.00001f, 30.0f);
     shz_xmtrx_init_identity();
