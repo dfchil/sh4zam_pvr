@@ -11,6 +11,17 @@ I've ported my previous spritecube example to use the c23 #embed feature for tex
 - A dreamcast toolchain with KallistoOS and a gcc version > 1.5.0 (for the #embed stuff). Instructions for setting that up [can be found here](https://dreamcast.wiki/Getting_Started_with_Dreamcast_development). Make sure to set the gcc version correctly in the [Configuring the dc-chain script](https://dreamcast.wiki/Getting_Started_with_Dreamcast_development#Configuring_the_dc-chain_script) step.
 - sh4zam installed on top your KallistoOS toolchain, [as per these instructions](https://github.com/gyrovorbis/sh4zam?tab=readme-ov-file#make-kallistios).
 
+## Setup
+Sh4zam PVR uses enDjinn for all the bolerplate stuff, so the initial setup process becomes:
+```sh
+git clone https://github.com/dfchil/sh4zam_pvr.git
+cd sh4zam_pvr
+git submodule init
+git submodule update  
+```
+
+
+
 ## Tutorials
 - [Part 1: Hello World, memcopy edition](./docs/Part1_HelloWorld.md)
 - [Part 2: Perspective](./docs/Part2_Perspective.md) 

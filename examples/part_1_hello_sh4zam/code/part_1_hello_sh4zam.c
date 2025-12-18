@@ -27,7 +27,7 @@ int main(void) {
       // upload to texture memory
       // shz_sq_memcpy32
     }
-    pvr_txr_load(buffer, tex + ((i - 32) * 8), 8 * 2); // 8 pixels wide, 4bpp = 16 bytes per row
+    // pvr_txr_load(buffer, tex + ((i - 32) * 8), 8 * 2); // 8 pixels wide, 4bpp = 16 bytes per row
 
 
   pvr_mem_free(tex);

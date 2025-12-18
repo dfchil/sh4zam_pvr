@@ -1,0 +1,3 @@
+[submodule "enDjinn"]
+	path = enDjinn
+	url = git@github.com:dfchil/enDjinn.git
