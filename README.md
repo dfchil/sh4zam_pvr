@@ -12,7 +12,7 @@ I've ported my previous spritecube example to use the c23 #embed feature for tex
 - sh4zam installed on top your KallistoOS toolchain, [as per these instructions](https://github.com/gyrovorbis/sh4zam?tab=readme-ov-file#make-kallistios).
 
 ## Setup
-Sh4zam PVR uses enDjinn for all the bolerplate stuff, so the initial setup process becomes:
+Sh4zam PVR uses enDjinn for all the boring boilerplate stuff, so the initial setup process becomes:
 ```sh
 git clone https://github.com/dfchil/sh4zam_pvr.git
 cd sh4zam_pvr
