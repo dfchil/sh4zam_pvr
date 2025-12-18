@@ -39,8 +39,8 @@ static float fovy = DEFAULT_FOV;
 static const alignas(32) uint8_t teapot_shzmdl[] = {
 // #embed "../assets/models/teapot.stl"
 // #embed "../assets/models/Utah_teapot_(solid).stl"
-#embed "../assets/models/teapot.shzmdl"
-// #embed "../assets/models/sphere.shzmdl"
+// #embed "../assets/models/teapot.shzmdl"
+#embed "../assets/models/sphere.shzmdl"
 // #embed "../assets/models/sphere_test.shzmdl"
 };
 

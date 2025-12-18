@@ -1,19 +1,25 @@
 #include <errno.h>
+#include <malloc.h>
+#include <sh4zam/shz_sh4zam.h>
 #include <sh4zamsprites/tex_loader.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
-#include <sh4zam/shz_sh4zam.h>
-#include <malloc.h>
 
+// notice KallistiOS runs in little-endian mode
+static const uint32_t DcTx_chksm = (uint32_t)'D' << 0 | (uint32_t)'c' << 8 |
+                                   (uint32_t)'T' << 16 | (uint32_t)'x' << 24;
+static const uint32_t DPAL_chksm = (uint32_t)'D' << 0 | (uint32_t)'P' << 8 |
+                                   (uint32_t)'A' << 16 | (uint32_t)'L' << 24;
 
 int pvrtex_load_blob(const void* data, dttex_info_t* texinfo) {
     memcpy(&texinfo->hdr, data, sizeof(dt_header_t));
-    if (texinfo->hdr.fourcc[0] != 'D' || texinfo->hdr.fourcc[1] != 'c' ||
-        texinfo->hdr.fourcc[2] != 'T' || texinfo->hdr.fourcc[3] != 'x') {
-        printf("Error: not valid DcTx data\n");
-        return 0;
+
+    if (*((uint32_t*)&texinfo->hdr.fourcc) != DcTx_chksm) {
+        ENJ_DEBUG_PRINT("Error: blob is not a valid DcTx texture!\n", filename);
+        success = 0;
+        break;
     }
     size_t tdatasize =
         texinfo->hdr.chunk_size - ((1 + texinfo->hdr.header_size) << 5);
@@ -48,46 +54,54 @@ int pvrtex_load_blob(const void* data, dttex_info_t* texinfo) {
 }
 
 int pvrtex_load_file(const char* filename, dttex_info_t* texinfo) {
-    FILE* file = fopen(filename, "rb");
-    if (!file) {
-        printf("Error opening file %s: %s\n", filename, strerror(errno));
-        return 0;
-    }
+    int success = 1;
+    file_t fp = -1;
+    void* buffer = NULL;
+    do {
+        FILE* file = fopen(filename, "rb");
+        if (!file) {
+            printf("Error opening file %s: %s\n", filename, strerror(errno));
+            success = 0;
+            break;
+        }
 
-    if (fread(texinfo, sizeof(dt_header_t), 1, file) != 1) {
-        printf("Error reading header from file %s\n", filename);
-        fclose(file);
-        return 0;
-    }
+        if (fread(texinfo, sizeof(dt_header_t), 1, file) != 1) {
+            printf("Error reading header from file %s\n", filename);
+            success = 0;
+            break;
+        }
+        if (*((uint32_t*)&texinfo->hdr.fourcc) != DcTx_chksm) {
+            printf("Error: not valid DcTx data in file %s\n", filename);
+            success = 0;
+            break;
+        }
 
-    if (texinfo->hdr.fourcc[0] != 'D' || texinfo->hdr.fourcc[1] != 'c' ||
-        texinfo->hdr.fourcc[2] != 'T' || texinfo->hdr.fourcc[3] != 'x') {
-        printf("Error: not valid DcTx data in file %s\n", filename);
-        fclose(file);
-        return 0;
-    }
+        size_t tdatasize =
+            texinfo->hdr.chunk_size - ((1 + texinfo->hdr.header_size) << 5);
 
-    size_t tdatasize =
-        texinfo->hdr.chunk_size - ((1 + texinfo->hdr.header_size) << 5);
+        buffer = memalign(32, tdatasize + sizeof(dt_header_t));
+        if (!buffer) {
+            printf("Error allocating memory for texture data from file %s\n",
+                   filename);
+            success = 0;
+            break;
+        }
+        memcpy(buffer, texinfo, sizeof(dt_header_t));
+        if (fread(buffer + sizeof(dt_header_t), tdatasize, 1, file) != 1) {
+            printf("Error reading texture data from file %s\n", filename);
+            success = 0;
+            break;
+        }
+        success = pvrtex_load_blob(buffer, texinfo);
+    } while (0);
 
-    void* buffer = memalign(32, tdatasize + sizeof(dt_header_t));
-    if (!buffer) {
-        printf("Error allocating memory for texture data from file %s\n",
-               filename);
-        fclose(file);
-        return 0;
-    }
-    memcpy(buffer, texinfo, sizeof(dt_header_t));
-    if (fread(buffer + sizeof(dt_header_t), tdatasize , 1, file) != 1) {
-        printf("Error reading texture data from file %s\n", filename);
+    if (buffer != NULL) {
         free(buffer);
-        fclose(file);
-        return 0;
     }
-    fclose(file);
-    int result = pvrtex_load_blob(buffer, texinfo);
-    free(buffer);
-    return result;
+    if (fp != -1) {
+        fclose(fp);
+    }
+    return success;
 }
 
 int pvrtex_load_palette_blob(const void* raw_data, int fmt, size_t offset) {
@@ -96,6 +110,11 @@ int pvrtex_load_palette_blob(const void* raw_data, int fmt, size_t offset) {
         size_t colors;
     } palette_hdr;
     memcpy(&palette_hdr, raw_data, sizeof(palette_hdr));
+    if (*(uint32_t*)palette_hdr.fourcc != DPAL_chksm) {
+        printf("Error: not valid DPAL data\n", );
+        return 0;
+    }
+
     uint32_t* colors = (uint32_t*)((char*)raw_data + sizeof(palette_hdr));
 
     pvr_set_pal_format(fmt);
@@ -148,8 +167,13 @@ int pvrtex_load_palette_file(const char* filename, int fmt, size_t offset) {
             success = 0;
             break;
         }
-        void* raw_data =
-            memalign(32, palette_hdr.colors * sizeof(uint32_t) + sizeof(palette_hdr));
+        if (*(uint32_t*)palette_hdr.fourcc != DPAL_chksm) {
+            printf("Error: not valid DPAL data in file %s\n", filename);
+            success = 0;
+            break;
+        }
+        raw_data = memalign(
+            32, palette_hdr.colors * sizeof(uint32_t) + sizeof(palette_hdr));
         if (!raw_data) {
             printf("Error allocating memory for palette colors from file %s\n",
                    filename);
@@ -162,7 +186,6 @@ int pvrtex_load_palette_file(const char* filename, int fmt, size_t offset) {
             printf("Error reading palette colors from file %s\n", filename);
             free(raw_data);
         }
-        fclose(file);
         success = pvrtex_load_palette_blob(raw_data, fmt, offset);
     } while (0);
 
